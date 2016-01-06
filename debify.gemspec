@@ -7,17 +7,21 @@ Gem::Specification.new do |spec|
   spec.name          = "debify"
   spec.version       = Debify::VERSION
   spec.authors       = ["Kevin Gilpin"]
-  spec.email         = ["kgilpin@gmail.com"]
-  spec.summary       = %q{TODO: Write a short summary. Required.}
-  spec.description   = %q{TODO: Write a longer description. Optional.}
-  spec.homepage      = ""
+  spec.email         = ["kgilpin@conjur.net"]
+  spec.summary       = %q{Utility commands to build and package Conjur services as Debian packages}
+  spec.homepage      = "https://github.com/conjurinc/debify"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files -z`.split("\x0")
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ["lib"]
+  
+  spec.add_dependency "gli"
+  spec.add_dependency "docker-api"
 
   spec.add_development_dependency "bundler", "~> 1.7"
   spec.add_development_dependency "rake", "~> 10.0"
+  spec.add_development_dependency "cucumber"
+  spec.add_development_dependency "aruba"
 end

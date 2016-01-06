@@ -1,0 +1,5 @@
+= debify
+
+Generate this with
+    debify rdoc
+After you have described your command line interface
