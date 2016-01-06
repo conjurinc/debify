@@ -1,6 +1,0 @@
-= debify
-
-Describe your project here
-
-:include:debify.rdoc
-
