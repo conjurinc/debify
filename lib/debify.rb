@@ -14,7 +14,7 @@ module DebugMixin
   end
 
   def self.debug *a
-    puts *a if DEBUG
+    $stderr.puts *a if DEBUG
   end
 
   def debug_write *a
@@ -22,12 +22,17 @@ module DebugMixin
   end
 
   def self.debug_write *a
-    $stdout.write *a if DEBUG
+    $stderr.write *a if DEBUG
   end
 
   # you can give this to various docker methods to print output if debug is on
   def self.docker_debug *a
-    debug a.last
+    a.each do |line|
+      line = JSON.parse(line)
+      line.keys.each do |k|
+        debug line[k]
+      end
+    end
   end
 
   DOCKER = method :docker_debug
@@ -87,20 +92,21 @@ command "package" do |c|
       raise "Unexpected argument '#{delimiter}'"
     end
     
-    dir = options[:dir] || Dir.cwd
+    dir = options[:dir] || '.'
     pwd = File.dirname(__FILE__)
     version = options[:version]
 
     fpm_image = Docker::Image.build_from_dir File.expand_path('fpm', File.dirname(__FILE__)), tag: "debify-fpm", &DebugMixin::DOCKER
     DebugMixin.debug_write "Built base fpm image '#{fpm_image.id}'\n"
+    dir = File.expand_path(dir)
     Dir.chdir dir do
       unless version
-        version = `git describe --long --tags --abbrev=7 | sed -e 's/^v//'`
+        version = `git describe --long --tags --abbrev=7 | sed -e 's/^v//'`.strip
         raise "No Git version (tag) for project '#{project_name}'" if version.empty?
       end
 
       package_name = "conjur-#{project_name}_#{version}_amd64.deb"
-      system "docker pull conjurinc/fpm"
+      system "docker pull conjurinc/fpm 1>&2"
       
       output = StringIO.new
       Gem::Package::TarWriter.new(output) do |tar|
@@ -116,26 +122,40 @@ command "package" do |c|
 
       DebugMixin.debug_write "Built fpm image '#{image.id}' for project #{project_name}\n"
 
-      Dir.mktmpdir do |tempdir|
-        options = {
-          'Cmd'   => [ project_name, version ] + fpm_args,
-          'Image' => image.id,
-          'Binds' => [
-            [ tempdir, '/dist' ].join(':')
-          ]
-        }
-        
-        container = Docker::Container.create options
-        begin
-          DebugMixin.debug_write "Packaging #{project_name} in container #{container.id}\n"
-          spawn("docker logs -f #{container.id}", [ :out, :err ] => $stderr).tap do |pid|
-            Process.detach pid
-          end
-          container.start
-          container.wait
-        ensure
-          container.delete(force: true)
+      # Make it under HOME so that Docker can map the volume on MacOS
+      tempdir = File.expand_path((0...50).map { ('a'..'z').to_a[rand(26)] }.join, ENV['HOME'])
+      FileUtils.mkdir tempdir
+      at_exit do
+        FileUtils.rm_rf tempdir
+      end
+      
+      options = {
+        'Cmd'   => [ project_name, version ] + fpm_args,
+        'Image' => image.id,
+        'Binds' => [
+          [ tempdir, '/dist' ].join(':')
+        ]
+      }
+      
+      container = Docker::Container.create options
+      begin
+        DebugMixin.debug_write "Packaging #{project_name} in container #{container.id}\n"
+        spawn("docker logs -f #{container.id}", [ :out, :err ] => $stderr).tap do |pid|
+          Process.detach pid
         end
+        container.start
+        container.wait
+        
+        deb_file = nil
+        Dir.chdir(tempdir) do
+          deb_file = Dir["*.deb"]
+          raise "Expected one deb file, got #{deb_file.join(', ')}" unless deb_file.length == 1
+          deb_file = deb_file[0]
+          FileUtils.cp deb_file, dir
+        end
+        puts File.basename(deb_file)
+      ensure
+        container.delete(force: true)
       end
     end
   end

@@ -33,7 +33,7 @@ mkdir -p opt/conjur/etc
 
 [ -d opt/conjur/"$project_name"/distrib ] && mv opt/conjur/"$project_name"/distrib /
 
-fpm -s dir -t deb -n $package_name -v $version -C . \
+fpm -s dir -t deb -n conjur-$project_name -v $version -C . \
 	--maintainer "Conjur Inc." \
 	--vendor "Conjur Inc." \
 	--license "Proprietary" \
@@ -45,5 +45,7 @@ fpm -s dir -t deb -n $package_name -v $version -C . \
 	--depends ruby2.0 \
 	--description "Conjur $project_name service" \
 	"$@"
+
+ls -al *.deb
 
 cp *.deb /dist/
