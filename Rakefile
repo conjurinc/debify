@@ -6,7 +6,7 @@ require 'rdoc/task'
 def cucumber?
   require 'cucumber'
   require 'cucumber/rake/task'
-rescue
+rescue LoadError
   false
 end
 
