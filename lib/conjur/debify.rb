@@ -4,6 +4,8 @@ require 'fileutils'
 
 include GLI::App
 
+Docker.options[:read_timeout] = 300
+
 # This is used to turn on DEBUG notices for the test case operation. For instance,
 # messages from "evoke configure"
 module DebugMixin
