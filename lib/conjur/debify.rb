@@ -1,4 +1,4 @@
-require "debify/version"
+require "conjur/debify/version"
 require 'docker'
 require 'fileutils'
 
@@ -42,9 +42,9 @@ module DebugMixin
   DOCKER = method :docker_debug
 end
 
-program_desc 'Describe your application here'
+program_desc 'Utility commands for building and testing Conjur appliance Debian packages'
 
-version Debify::VERSION
+version Conjur::Debify::VERSION
 
 subcommand_option_handling :normal
 arguments :strict

@@ -1,11 +1,11 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'debify/version'
+require 'conjur/debify/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "debify"
-  spec.version       = Debify::VERSION
+  spec.name          = "conjur-debify"
+  spec.version       = Conjur::Debify::VERSION
   spec.authors       = ["Kevin Gilpin"]
   spec.email         = ["kgilpin@conjur.net"]
   spec.summary       = %q{Utility commands to build and package Conjur services as Debian packages}
