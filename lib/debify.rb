@@ -27,11 +27,15 @@ module DebugMixin
 
   # you can give this to various docker methods to print output if debug is on
   def self.docker_debug *a
-    a.each do |line|
-      line = JSON.parse(line)
-      line.keys.each do |k|
-        debug line[k]
-      end
+    if a.length == 2 && a[0].is_a?(Symbol)
+      debug a.last
+    else
+       a.each do |line|
+         line = JSON.parse(line)
+         line.keys.each do |k|
+           debug line[k]
+         end
+       end
     end
   end
 
@@ -44,14 +48,6 @@ version Debify::VERSION
 
 subcommand_option_handling :normal
 arguments :strict
-
-desc 'Describe some switch here'
-switch [:s,:switch]
-
-desc 'Describe some flag here'
-default_value 'the default'
-arg_name 'The name of the argument'
-flag [:f,:flagname]
 
 long_desc <<DESC
 Build a debian package for a project.
@@ -75,7 +71,7 @@ packaged using fpm arguments.
 All arguments to this command which follow the double-dash are propagated to 
 the fpm command.
 DESC
-arg_name "project_name -- <fpm-arguments>"
+arg_name "project-name -- <fpm-arguments>"
 command "package" do |c|
   c.desc "Set the current working directory"
   c.flag [ :d, "dir" ]
@@ -83,8 +79,8 @@ command "package" do |c|
   c.desc "Specify the deb version; by default, it's computed from the Git tag"
   c.flag [ :v, :version ]
   
-  c.action do |global_options,options,args|
-    raise "project_name is required" unless project_name = args.shift
+  c.action do |global_options,cmd_options,args|
+    raise "project-name is required" unless project_name = args.shift
     fpm_args = []
     if (delimeter = args.shift) == '--'
       fpm_args = args.dup
@@ -92,9 +88,9 @@ command "package" do |c|
       raise "Unexpected argument '#{delimiter}'"
     end
     
-    dir = options[:dir] || '.'
+    dir = cmd_options[:dir] || '.'
     pwd = File.dirname(__FILE__)
-    version = options[:version]
+    version = cmd_options[:version]
 
     fpm_image = Docker::Image.build_from_dir File.expand_path('fpm', File.dirname(__FILE__)), tag: "debify-fpm", &DebugMixin::DOCKER
     DebugMixin.debug_write "Built base fpm image '#{fpm_image.id}'\n"
@@ -106,11 +102,10 @@ command "package" do |c|
       end
 
       package_name = "conjur-#{project_name}_#{version}_amd64.deb"
-      system "docker pull conjurinc/fpm 1>&2"
       
       output = StringIO.new
       Gem::Package::TarWriter.new(output) do |tar|
-        `find . -type f`.split("\n").each do |fname|
+        `git ls-files -z`.split("\x0").each do |fname|
           stat = File.stat(fname)
           tar.add_file(fname, stat.mode) { |tar_file| tar_file.write(File.read(fname)) }
         end
@@ -140,11 +135,9 @@ command "package" do |c|
       container = Docker::Container.create options
       begin
         DebugMixin.debug_write "Packaging #{project_name} in container #{container.id}\n"
-        spawn("docker logs -f #{container.id}", [ :out, :err ] => $stderr).tap do |pid|
-          Process.detach pid
-        end
-        container.start
-        container.wait
+        container.tap(&:start).attach { |stream, chunk| $stderr.puts chunk }
+        status = container.wait
+        raise "Failed to package #{project_name}" unless status['StatusCode'] == 0
         
         deb_file = nil
         Dir.chdir(tempdir) do
@@ -153,9 +146,137 @@ command "package" do |c|
           deb_file = deb_file[0]
           FileUtils.cp deb_file, dir
         end
+        FileUtils.ln_sf deb_file, deb_file.gsub(version, "latest")
         puts File.basename(deb_file)
       ensure
         container.delete(force: true)
+      end
+    end
+  end
+end
+
+long_desc <<DESC
+Test a Conjur debian package in a Conjur appliance container.
+
+DESC
+arg_name "project-name test-script"
+command "test" do |c|
+  c.desc "Set the current working directory"
+  c.flag [ :d, :dir ]
+
+  c.desc "Keep the Conjur appliance container after the command finishes"
+  c.default_value false
+  c.switch [ :k, :keep ]
+
+  c.desc "Image name"
+  c.default_value "registry.tld/conjur-appliance-cuke-master"
+  c.flag [ :i, :image ]
+  
+  c.desc "Image tag, e.g. 4.5-stable, 4.6-stable"
+  c.flag [ :t, "image-tag"]
+  
+  c.desc "Pull the image, even if it's in the Docker engine already"
+  c.default_value true
+  c.switch [ :pull ]
+    
+  c.desc "Shell script to configure the appliance before testing"
+  c.flag [ :c, "configure-script" ]
+    
+  c.action do |global_options,cmd_options,args|
+    raise "project-name is required" unless project_name = args.shift
+    raise "test-script is required" unless test_script = args.shift
+    
+    dir = cmd_options[:dir] || '.'
+    dir = File.expand_path(dir)
+    
+    raise "Directory #{dir} does not exist or is not a directory" unless File.directory?(dir)
+    raise "Directory #{dir} does not contain a .deb file" unless Dir["#{dir}/*.deb"].length >= 1
+    
+    Dir.chdir dir do
+      image_tag = cmd_options["image-tag"] or raise "image-tag is required"
+      appliance_image_id = [ cmd_options[:image], image_tag ].join(":")
+      configure_script = cmd_options["configure-script"]
+        
+      raise "#{configure_script} does not exist or is not a file" unless configure_script.nil? || File.file?(configure_script)
+      raise "#{test_script} does not exist or is not a file" unless File.file?(test_script)
+        
+      appliance_image = if cmd_options[:pull]
+        Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER
+      else
+        Docker::Image.get(appliance_image_id)
+      end
+      
+      options = {
+        'Image' => appliance_image.id,
+        'Env' => [
+          "CONJUR_APPLIANCE_URL=https://localhost/api",
+          "CONJUR_ACCOUNT=cucumber",
+          "CONJUR_CERT_FILE=/opt/conjur/etc/ssl/ca.pem",
+          "CONJUR_AUTHN_LOGIN=admin",
+          "CONJUR_ENV=production",
+          "CONJUR_AUTHN_API_KEY=secret",
+          "CONJUR_ADMIN_PASSWORD=secret",
+        ],
+        'Binds' => [
+          [ dir, "/src/#{project_name}" ].join(':')
+        ]
+      }
+      
+      container = Docker::Container.create(options)
+      
+      def wait_for_conjur appliance_image, container
+        wait_options = {
+          'Image' => appliance_image.id,
+          'Entrypoint' => '/opt/conjur/evoke/bin/wait_for_conjur',
+          'HostConfig' => {
+            'Links' => [
+              [ container.id, 'conjur' ].join(":")
+            ]
+          }
+        }
+  
+        wait_container = Docker::Container.create wait_options
+        begin
+          spawn("docker logs -f #{wait_container.id}", [ :out, :err ] => $stderr).tap do |pid|
+            Process.detach pid
+          end
+          wait_container.start
+          status = wait_container.wait
+          raise "wait_for_conjur failed" unless status['StatusCode'] == 0
+        ensure
+          wait_container.delete(force: true)
+        end
+      end
+      
+      begin
+        DebugMixin.debug_write "Testing #{project_name} in container #{container.id}\n"
+        spawn("docker logs -f #{container.id}", [ :out, :err ] => $stderr).tap do |pid|
+          Process.detach pid
+        end
+        container.start
+        
+        DebugMixin.debug_write "Waiting for Conjur\n"
+        wait_for_conjur appliance_image, container
+        
+        DebugMixin.debug_write "Installing #{project_name}\n"
+        
+        stdout, stderr, exitcode = container.exec [ "dpkg", "-i", "/src/#{project_name}/conjur-#{project_name}_latest_amd64.deb" ], &DebugMixin::DOCKER
+        exit_now! "deb install failed", exitcode unless exitcode == 0
+        stdout, stderr, exitcode = container.exec [ "/opt/conjur/evoke/bin/test-install", project_name ], &DebugMixin::DOCKER
+        exit_now! "test-install failed", exitcode unless exitcode == 0
+  
+        wait_for_conjur appliance_image, container
+  
+        if configure_script
+          system "./#{configure_script} #{container.id}"
+          exit_now! "#{configure_script} failed with exit code #{$?.exitstatus}", $?.exitstatus unless $?.exitstatus == 0
+          wait_for_conjur appliance_image, container
+        end
+  
+        system "./#{test_script} #{container.id}"
+        exit_now! "#{test_script} failed with exit code #{$?.exitstatus}", $?.exitstatus unless $?.exitstatus == 0
+      ensure
+        container.delete(force: true) unless cmd_options[:keep]
       end
     end
   end

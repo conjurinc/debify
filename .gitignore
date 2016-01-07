@@ -13,3 +13,4 @@
 *.a
 results.html
 mkmf.log
+*.deb
