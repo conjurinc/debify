@@ -2,4 +2,5 @@
 
 gem install -N bundler
 bundle
-rake features
+rm -rf features/reports
+cucumber --format pretty --format junit --report-dir features/reports || true
