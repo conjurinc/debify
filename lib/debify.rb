@@ -49,9 +49,8 @@ version Debify::VERSION
 subcommand_option_handling :normal
 arguments :strict
 
+desc "Build a debian package for a project"
 long_desc <<DESC
-Build a debian package for a project.
-
 The package is built using fpm (https://github.com/jordansissel/fpm).
 
 The project directory is required to contain:
@@ -155,9 +154,29 @@ command "package" do |c|
   end
 end
 
+desc "Test a Conjur debian package in a Conjur appliance container"
 long_desc <<DESC
-Test a Conjur debian package in a Conjur appliance container.
+First, a Conjur appliance container is created and started. By default, the
+container image is registry.tld/conjur-appliance-cuke-master. An image tag
+MUST be supplied. This image is configured with all the CONJUR_ environment
+variables setup for the local environment (appliance URL, cert path, admin username and
+password, etc). The project source tree is also mounted into the container, at
+/src/<project-name>.
 
+This command then waits for Conjur to initialize and be healthy. It proceeds by
+installing the conjur-<project-name>_latest_amd64.deb from the project working directory.
+
+Then the evoke "test-install" command is used to install the test code in the 
+/src/<project-name>. Basically, the development bundle is installed and the database
+configuration (if any) is setup.
+
+Next, an optional "configure-script" from the project source tree is run, with the 
+container id as the program argument. This command waits for Conjur to be healthy again.
+
+Finally, a test script from the project source tree is run, again with the container
+id as the program argument. 
+
+Then the Conjur container is deleted (use --keep to leave it running).
 DESC
 arg_name "project-name test-script"
 command "test" do |c|
