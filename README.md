@@ -86,7 +86,7 @@ $ debify test -i conjur-appliance-cuke-master --image-tag 4.6-dev --no-pull -d e
 ## Publish a package
 
 ```
-debify help publish
+$ debify help publish
 NAME
     publish - Publish a debian package to apt repository
 
