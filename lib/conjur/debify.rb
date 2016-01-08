@@ -303,6 +303,67 @@ command "test" do |c|
     end
   end
 end
+
+desc "Publish a debian package to apt repository"
+long_desc <<DESC
+Publishes a deb created with `debify package` to our private apt repository.
+
+You can use wildcards to select packages to publish, e.g., debify publish *.deb.
+
+--distribution should match the major/minor version of the Conjur appliance you want to install to.
+
+--component should be 'stable' if run after package tests pass or 'testing' if the package is not yet ready for release.
+
+ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD must be available in the environment for upload to succeed.
+DESC
+arg_name "package"
+command "publish" do |c|
+  c.desc "Lock packages to a Conjur appliance version"
+  c.default_value "4.6"
+  c.flag [ :d, :distribution ]
+
+  c.desc "Maturity stage of the package, 'testing' or 'stable'"
+  c.default_value "testing"
+  c.flag [ :c, :component ]
+
+  c.action do |global_options,cmd_options,args|
+    raise "package is required" unless package = args.shift
+
+    distribution = cmd_options[:distribution]
+    component = cmd_options[:component]
+    dir = '.'
+    dir = File.expand_path(dir)
+
+    publish_image = Docker::Image.build_from_dir File.expand_path('publish', File.dirname(__FILE__)), tag: "debify-publish", &DebugMixin::DOCKER
+    DebugMixin.debug_write "Built base publish image '#{publish_image.id}'\n"
+
+    options = {
+        'Image' => publish_image.id,
+        "AttachStdout" => true,
+        "AttachStderr" => true,
+        'Cmd' => [
+            "art", "upload",
+            "--url", "https://conjurinc.artifactoryonline.com/conjurinc",
+            "--user", ENV['ARTIFACTORY_USERNAME'],
+            "--password", ENV['ARTIFACTORY_PASSWORD'],
+            "--deb", "#{distribution}/#{component}/amd64",
+            package, "debian-local/"
+        ],
+        'Binds' => [
+            [ dir, "/src" ].join(':')
+        ]
+    }
+
+    container = Docker::Container.create(options)
+    begin
+      container.tap(&:start).streaming_logs(follow: true, stdout: true, stderr: true) { |stream, chunk| puts "#{chunk}" }
+      status = container.wait
+      raise "Failed to publish #{package}" unless status['StatusCode'] == 0
+    ensure
+      container.delete(force: true)
+    end
+  end
+end
   
 pre do |global,command,options,args|
   # Pre logic here
@@ -324,3 +385,4 @@ on_error do |exception|
   # return false to skip default error handling
   true
 end
+
