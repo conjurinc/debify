@@ -83,6 +83,55 @@ COMMAND OPTIONS
 $ debify test -i conjur-appliance-cuke-master --image-tag 4.6-dev --no-pull -d example example test.sh
 ```
 
+## Publish a package
+
+```
+debify help publish
+NAME
+    publish - Publish a debian package to apt repository
+
+SYNOPSIS
+    debify [global options] publish [command options] package
+
+DESCRIPTION
+    Publishes a deb created with `debify package` to our private apt
+    repository.
+
+    You can use wildcards to select packages to publish, e.g., debify
+    publish *.deb.
+
+    --distribution should match the major/minor version of the Conjur
+    appliance you want to install to.
+
+    --component should be 'stable' if run after package tests pass or
+    'testing' if the package is not yet ready for release.
+
+    ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD must be available
+    in the environment for upload to succeed.
+
+COMMAND OPTIONS
+    -c, --component=arg    - Maturity stage of the package, 'testing'
+                             or 'stable' (default: testing)
+    -d, --distribution=arg - Lock packages to a Conjur appliance
+                             version (default: 4.6)
+```
+
+### Example usage
+
+Assuming a `secrets.yml` like this exists in the source directory:
+
+```yaml
+ARTIFACTORY_USERNAME: !var artifactory/users/jenkins/username
+ARTIFACTORY_PASSWORD: !var artifactory/users/jenkins/password
+```
+
+```sh-session
+$ summon debify publish -c stable conjur-example_0.0.1_amd64.deb
+[Thread 0] Uploading artifact: https://conjurinc.artifactoryonline.com/conjurinc/debian-local/test.deb;deb.distribution=4.6;deb.component=stable;deb.architecture=amd64
+[Thread 0] Artifactory response: 201 Created
+Uploaded 1 artifacts to Artifactory.
+```
+
 ## Installation
 
 Add this line to your application's Gemfile:
