@@ -339,8 +339,6 @@ command "publish" do |c|
 
     options = {
         'Image' => publish_image.id,
-        "AttachStdout" => true,
-        "AttachStderr" => true,
         'Cmd' => [
             "art", "upload",
             "--url", "https://conjurinc.artifactoryonline.com/conjurinc",
