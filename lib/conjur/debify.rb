@@ -1,6 +1,7 @@
 require "conjur/debify/version"
 require 'docker'
 require 'fileutils'
+require 'gli'
 
 include GLI::App
 
