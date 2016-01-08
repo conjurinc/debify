@@ -270,23 +270,37 @@ command "test" do |c|
         end
       end
       
+      def command container, *args
+        stdout, stderr, exitcode = container.exec args, &DebugMixin::DOCKER
+        exit_now! "Command failed : #{args.join(' ')}", exitcode unless exitcode == 0
+      end
+      
       begin
         DebugMixin.debug_write "Testing #{project_name} in container #{container.id}\n"
+
         spawn("docker logs -f #{container.id}", [ :out, :err ] => $stderr).tap do |pid|
           Process.detach pid
         end
         container.start
+
+        DebugMixin.debug_write "Stopping conjur\n"
+
+        container.exec [ "sv", "stop", "conjur" ], &DebugMixin::DOCKER
         
-        DebugMixin.debug_write "Waiting for Conjur\n"
-        wait_for_conjur appliance_image, container
+        DebugMixin.debug_write "Purging source install of #{project_name}\n"
+        
+        command container, "rm", "-rf", "/opt/conjur/#{project_name}"
+        command container, "rm", "-f", "/opt/conjur/etc/#{project_name}.conf"
+        command container, "dpkg", "-P", "conjur-#{project_name}"
         
         DebugMixin.debug_write "Installing #{project_name}\n"
         
-        stdout, stderr, exitcode = container.exec [ "dpkg", "-i", "/src/#{project_name}/conjur-#{project_name}_latest_amd64.deb" ], &DebugMixin::DOCKER
-        exit_now! "deb install failed", exitcode unless exitcode == 0
-        stdout, stderr, exitcode = container.exec [ "/opt/conjur/evoke/bin/test-install", project_name ], &DebugMixin::DOCKER
-        exit_now! "test-install failed", exitcode unless exitcode == 0
-  
+        command container, "dpkg", "-i", "/src/#{project_name}/conjur-#{project_name}_latest_amd64.deb"
+        command container, "/opt/conjur/evoke/bin/test-install", project_name
+
+        DebugMixin.debug_write "Starting conjur\n"
+
+        command container, "sv", "start", "conjur"
         wait_for_conjur appliance_image, container
   
         if configure_script
