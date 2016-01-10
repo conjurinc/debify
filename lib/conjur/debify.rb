@@ -291,7 +291,8 @@ command "test" do |c|
         
         command container, "rm", "-rf", "/opt/conjur/#{project_name}"
         command container, "rm", "-f", "/opt/conjur/etc/#{project_name}.conf"
-        command container, "dpkg", "-P", "conjur-#{project_name}"
+        command container, "rm", "-f", "/usr/local/bin/conjur-#{project_name}"
+        container.exec [ "dpkg", "-P", "conjur-#{project_name}" ], &DebugMixin::DOCKER
         
         DebugMixin.debug_write "Installing #{project_name}\n"
         
