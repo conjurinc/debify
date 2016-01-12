@@ -242,9 +242,6 @@ RUN dpkg --install /tmp/#{deb}
       options = {
         'Image' => appliance_image.id,
         'Env' => [
-          "CONJUR_APPLIANCE_URL=https://localhost/api",
-          "CONJUR_ACCOUNT=cucumber",
-          "CONJUR_CERT_FILE=/opt/conjur/etc/ssl/ca.pem",
           "CONJUR_AUTHN_LOGIN=admin",
           "CONJUR_ENV=production",
           "CONJUR_AUTHN_API_KEY=secret",
