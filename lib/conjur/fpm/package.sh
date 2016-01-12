@@ -42,7 +42,6 @@ fpm -s dir -t deb -n conjur-$project_name -v $version -C . \
 	--config-files opt/conjur/etc \
 	--deb-user conjur \
 	--deb-group conjur \
-	--depends ruby2.0 \
 	--description "Conjur $project_name service" \
 	"$@"
 
