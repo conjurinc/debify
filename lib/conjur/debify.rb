@@ -221,12 +221,44 @@ command "test" do |c|
         
       raise "#{configure_script} does not exist or is not a file" unless configure_script.nil? || File.file?(configure_script)
       raise "#{test_script} does not exist or is not a file" unless File.file?(test_script)
-        
+
+      def build_test_image(appliance_image_id, project_name)
+        deb = "conjur-#{project_name}_latest_amd64.deb"
+        puts "deb: #{deb}"
+        dockerfile = <<-DOCKERFILE
+FROM #{appliance_image_id}
+
+COPY #{deb} /tmp/
+RUN dpkg --force all --purge conjur-#{project_name} || true
+RUN dpkg --install /tmp/#{deb}
+        DOCKERFILE
+        puts "dockerfile: #{dockerfile}"
+        Dir.mktmpdir do |tmpdir|
+          tmpfile = Tempfile.new('Dockerfile', tmpdir)
+          File.write(tmpfile, dockerfile)
+          dockerfile_name = File.basename(tmpfile.path)
+          tar_cmd = "tar -cvzh -C #{tmpdir} #{dockerfile_name} -C #{Dir.pwd} #{deb}"
+          puts "tar_cmd: #{tar_cmd}"
+          tar = open("| #{tar_cmd}")
+          begin
+            Docker::Image.build_from_tar(tar, :dockerfile => dockerfile_name) do |chunk|
+              $stderr.puts JSON.parse(chunk)['stream']
+            end.tap { |i| puts "image: #{i}" }
+          ensure
+            tar.close
+          end
+        end
+      end
+
+=begin
       appliance_image = if cmd_options[:pull]
         Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER
       else
         Docker::Image.get(appliance_image_id)
       end
+=end
+
+      appliance_image = build_test_image(appliance_image_id, project_name)
       
       options = {
         'Image' => appliance_image.id,
@@ -283,6 +315,7 @@ command "test" do |c|
         end
         container.start
 
+=begin
         DebugMixin.debug_write "Stopping conjur\n"
 
         container.exec [ "sv", "stop", "conjur" ], &DebugMixin::DOCKER
@@ -297,11 +330,12 @@ command "test" do |c|
         DebugMixin.debug_write "Installing #{project_name}\n"
         
         command container, "dpkg", "-i", "/src/#{project_name}/conjur-#{project_name}_latest_amd64.deb"
+=end
         command container, "/opt/conjur/evoke/bin/test-install", project_name
 
-        DebugMixin.debug_write "Starting conjur\n"
+        DebugMixin.debug_write "Restarting conjur\n"
 
-        command container, "sv", "start", "conjur"
+        command container, "sv", "restart", "conjur"
         wait_for_conjur appliance_image, container
   
         if configure_script
