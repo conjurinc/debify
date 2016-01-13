@@ -46,5 +46,3 @@ fpm -s dir -t deb -n conjur-$project_name -v $version -C . \
 	"$@"
 
 ls -al *.deb
-
-cp *.deb /dist/
