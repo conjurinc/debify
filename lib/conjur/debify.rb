@@ -52,6 +52,12 @@ version Conjur::Debify::VERSION
 subcommand_option_handling :normal
 arguments :strict
 
+def detect_version
+  `git describe --long --tags --abbrev=7 | sed -e 's/^v//'`.strip.tap do |version|
+    raise "No Git version (tag) for project '#{project_name}'" if version.empty?
+  end
+end
+
 desc "Build a debian package for a project"
 long_desc <<DESC
 The package is built using fpm (https://github.com/jordansissel/fpm).
@@ -83,6 +89,7 @@ command "package" do |c|
   
   c.action do |global_options,cmd_options,args|
     raise "project-name is required" unless project_name = args.shift
+    
     fpm_args = []
     if (delimeter = args.shift) == '--'
       fpm_args = args.dup
@@ -92,16 +99,12 @@ command "package" do |c|
     
     dir = cmd_options[:dir] || '.'
     pwd = File.dirname(__FILE__)
-    version = cmd_options[:version]
 
     fpm_image = Docker::Image.build_from_dir File.expand_path('fpm', File.dirname(__FILE__)), tag: "debify-fpm", &DebugMixin::DOCKER
     DebugMixin.debug_write "Built base fpm image '#{fpm_image.id}'\n"
     dir = File.expand_path(dir)
     Dir.chdir dir do
-      unless version
-        version = `git describe --long --tags --abbrev=7 | sed -e 's/^v//'`.strip
-        raise "No Git version (tag) for project '#{project_name}'" if version.empty?
-      end
+      version = cmd_options[:version] || detect_version
 
       package_name = "conjur-#{project_name}_#{version}_amd64.deb"
       
@@ -207,6 +210,7 @@ command "test" do |c|
   c.action do |global_options,cmd_options,args|
     raise "project-name is required" unless project_name = args.shift
     raise "test-script is required" unless test_script = args.shift
+    raise "Receive extra command-line arguments" if args.shift
     
     dir = cmd_options[:dir] || '.'
     dir = File.expand_path(dir)
@@ -320,57 +324,92 @@ desc "Publish a debian package to apt repository"
 long_desc <<DESC
 Publishes a deb created with `debify package` to our private apt repository.
 
-You can use wildcards to select packages to publish, e.g., debify publish *.deb.
+"distribution" should match the major/minor version of the Conjur appliance you want to install to.
 
---distribution should match the major/minor version of the Conjur appliance you want to install to.
+The package name is a required option. The package version can be specified as a CLI option, or it will
+be auto-detected from Git.
 
 --component should be 'stable' if run after package tests pass or 'testing' if the package is not yet ready for release.
+If you don't specify the component, it will be set to 'testing' unless the current git branch is 'master' or 'origin/master'.
+The git branch is first detected from the env var GIT_BRANCH, and then by checking `git rev-parse --abbrev-ref HEAD`
+(which won't give you the answer you want when detached).
 
-ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD must be available in the environment for upload to succeed.
 DESC
-arg_name "package"
+arg_name "distribution project-name"
 command "publish" do |c|
-  c.desc "Lock packages to a Conjur appliance version"
-  c.default_value "4.6"
-  c.flag [ :d, :distribution ]
+  c.desc "Set the current working directory"
+  c.flag [ :d, :dir ]
+    
+  c.desc "Specify the deb package version; by default, it's computed from the Git tag"
+  c.flag [ :v, :version ]
 
   c.desc "Maturity stage of the package, 'testing' or 'stable'"
   c.default_value "testing"
   c.flag [ :c, :component ]
 
   c.action do |global_options,cmd_options,args|
-    raise "package is required" unless package = args.shift
+    raise "distribution is required" unless distribution = args.shift
+    raise "project-name is required" unless project_name = args.shift
+    raise "Receive extra command-line arguments" if args.shift
 
-    distribution = cmd_options[:distribution]
-    component = cmd_options[:component]
-    dir = '.'
+    def detect_component
+      branch = ENV['GIT_BRANCH']
+      unless branch
+        branch = `git describe --all`
+      end
+      if %w(master origin/master).include?(branch)
+        'stable'
+      else
+        'testing'
+      end
+    end
+
+    dir = cmd_options[:dir] || '.'
     dir = File.expand_path(dir)
+    
+    raise "Directory #{dir} does not exist or is not a directory" unless File.directory?(dir)
+        
+    Dir.chdir dir do
+      version = cmd_options[:version] || detect_version
+      component = cmd_options[:component] || detect_component
+      
+      package_name = "conjur-#{project_name}_#{version}_amd64.deb"
 
-    publish_image = Docker::Image.build_from_dir File.expand_path('publish', File.dirname(__FILE__)), tag: "debify-publish", &DebugMixin::DOCKER
-    DebugMixin.debug_write "Built base publish image '#{publish_image.id}'\n"
+      publish_image = Docker::Image.build_from_dir File.expand_path('publish', File.dirname(__FILE__)), tag: "debify-publish", &DebugMixin::DOCKER
+      DebugMixin.debug_write "Built base publish image '#{publish_image.id}'\n"
+      
+      require 'conjur/cli'
+      require 'conjur/authn'
+      Conjur::Config.load
+      Conjur::Config.apply
+      conjur = Conjur::Authn.connect nil, noask: true
+      
+      art_username = conjur.variable('artifactory/users/jenkins/username').value
+      art_password = conjur.variable('artifactory/users/jenkins/password').value
 
-    options = {
-        'Image' => publish_image.id,
-        'Cmd' => [
-            "art", "upload",
-            "--url", "https://conjurinc.artifactoryonline.com/conjurinc",
-            "--user", ENV['ARTIFACTORY_USERNAME'],
-            "--password", ENV['ARTIFACTORY_PASSWORD'],
-            "--deb", "#{distribution}/#{component}/amd64",
-            package, "debian-local/"
-        ],
-        'Binds' => [
-            [ dir, "/src" ].join(':')
-        ]
-    }
-
-    container = Docker::Container.create(options)
-    begin
-      container.tap(&:start).streaming_logs(follow: true, stdout: true, stderr: true) { |stream, chunk| puts "#{chunk}" }
-      status = container.wait
-      raise "Failed to publish #{package}" unless status['StatusCode'] == 0
-    ensure
-      container.delete(force: true)
+      options = {
+          'Image' => publish_image.id,
+          'Cmd' => [
+              "art", "upload",
+              "--url", "https://conjurinc.artifactoryonline.com/conjurinc",
+              "--user", art_username,
+              "--password", art_password,
+              "--deb", "#{distribution}/#{component}/amd64",
+              package_name, "debian-local/"
+          ],
+          'Binds' => [
+              [ dir, "/src" ].join(':')
+          ]
+      }
+  
+      container = Docker::Container.create(options)
+      begin
+        container.tap(&:start).streaming_logs(follow: true, stdout: true, stderr: true) { |stream, chunk| puts "#{chunk}" }
+        status = container.wait
+        raise "Failed to publish #{package_name}" unless status['StatusCode'] == 0
+      ensure
+        container.delete(force: true)
+      end
     end
   end
 end
