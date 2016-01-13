@@ -122,19 +122,9 @@ command "package" do |c|
 
       DebugMixin.debug_write "Built fpm image '#{image.id}' for project #{project_name}\n"
 
-      # Make it under HOME so that Docker can map the volume on MacOS
-      tempdir = File.expand_path((0...50).map { ('a'..'z').to_a[rand(26)] }.join, ENV['HOME'])
-      FileUtils.mkdir tempdir
-      at_exit do
-        FileUtils.rm_rf tempdir
-      end
-      
       options = {
         'Cmd'   => [ project_name, version ] + fpm_args,
-        'Image' => image.id,
-        'Binds' => [
-          [ tempdir, '/dist' ].join(':')
-        ]
+        'Image' => image.id
       }
       
       container = Docker::Container.create options
@@ -144,15 +134,16 @@ command "package" do |c|
         status = container.wait
         raise "Failed to package #{project_name}" unless status['StatusCode'] == 0
         
-        deb_file = nil
-        Dir.chdir(tempdir) do
-          deb_file = Dir["*.deb"]
-          raise "Expected one deb file, got #{deb_file.join(', ')}" unless deb_file.length == 1
-          deb_file = deb_file[0]
-          FileUtils.cp deb_file, dir
+        require 'rubygems/package'
+        deb = StringIO.new
+        container.copy("/src/#{package_name}") { |chunk| deb.write(chunk) }
+        deb.rewind
+        tar = Gem::Package::TarReader.new deb
+        tar.first.tap do |entry|
+          open(entry.full_name, 'wb') {|f| f.write(entry.read)}
+          FileUtils.ln_sf entry.full_name, entry.full_name.gsub(version, "latest")
+          puts entry.full_name
         end
-        FileUtils.ln_sf deb_file, deb_file.gsub(version, "latest")
-        puts File.basename(deb_file)
       ensure
         container.delete(force: true)
       end
