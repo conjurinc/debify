@@ -86,6 +86,9 @@ command "package" do |c|
   
   c.desc "Specify the deb version; by default, it's computed from the Git tag"
   c.flag [ :v, :version ]
+
+  c.desc "Specify a custom Dockerfile.fpm"
+  c.flag [ :dockerfile]
   
   c.action do |global_options,cmd_options,args|
     raise "project-name is required" unless project_name = args.shift
@@ -105,16 +108,18 @@ command "package" do |c|
     dir = File.expand_path(dir)
     Dir.chdir dir do
       version = cmd_options[:version] || detect_version
+      dockerfile_path = cmd_options[:dockerfile] || File.expand_path("debify/Dockerfile.fpm", pwd)
+      dockerfile = File.read(dockerfile_path)
 
       package_name = "conjur-#{project_name}_#{version}_amd64.deb"
       
       output = StringIO.new
       Gem::Package::TarWriter.new(output) do |tar|
-        `git ls-files -z`.split("\x0").each do |fname|
+        (`git ls-files -z`.split("\x0") + ['Gemfile.lock']).uniq.each do |fname|
           stat = File.stat(fname)
           tar.add_file(fname, stat.mode) { |tar_file| tar_file.write(File.read(fname)) }
         end
-        tar.add_file('Dockerfile', 0640) { |tar_file| tar_file.write File.read(File.expand_path("debify/Dockerfile.fpm", pwd)).gsub("@@image@@", fpm_image.id) }
+        tar.add_file('Dockerfile', 0640) { |tar_file| tar_file.write dockerfile.gsub("@@image@@", fpm_image.id) }
       end
       output.rewind
         
@@ -235,6 +240,11 @@ command "test" do |c|
           [ dir, "/src/#{project_name}" ].join(':')
         ]
       }
+      if ENV['SSH_AUTH_SOCK']
+        options['Env'].push "SSH_AUTH_SOCK=#{ENV['SSH_AUTH_SOCK']}"
+      else
+        $stderr.puts "Warning: No SSH_AUTH_SOCK, authentication to resource such as GitHub might fail""
+      end
       
       container = Docker::Container.create(options)
       
