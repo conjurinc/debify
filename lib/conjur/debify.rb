@@ -213,13 +213,20 @@ command "test" do |c|
       appliance_image_id = [ cmd_options[:image], image_tag ].join(":")
         
       raise "#{test_script} does not exist or is not a file" unless File.file?(test_script)
-
+      
+      Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
+      
       def build_test_image(appliance_image_id, project_name)
         deb = "conjur-#{project_name}_latest_amd64.deb"
         dockerfile = <<-DOCKERFILE
 FROM #{appliance_image_id}
 
 COPY #{deb} /tmp/
+
+RUN rm -rf /opt/conjur/#{project_name}
+RUN rm -f /opt/conjur/etc/#{project_name}.conf
+RUN rm -f /usr/local/bin/conjur-#{project_name}
+
 RUN dpkg --force all --purge conjur-#{project_name} || true
 RUN dpkg --install /tmp/#{deb}
 
@@ -241,6 +248,10 @@ RUN touch /etc/service/conjur/down
 
       appliance_image = build_test_image(appliance_image_id, project_name)
       
+      vendor_dir = File.expand_path("tmp/debify/#{project_name}/vendor", ENV['HOME'])
+      dot_bundle_dir = File.expand_path("tmp/debify/#{project_name}/.bundle", ENV['HOME'])
+      FileUtils.mkdir_p vendor_dir
+      FileUtils.mkdir_p dot_bundle_dir
       options = {
         'Image' => appliance_image.id,
         'Env' => [
@@ -250,7 +261,9 @@ RUN touch /etc/service/conjur/down
           "CONJUR_ADMIN_PASSWORD=secret",
         ],
         'Binds' => [
-          [ dir, "/src/#{project_name}" ].join(':')
+          [ dir, "/src/#{project_name}" ].join(':'),
+          [ vendor_dir, "/src/#{project_name}/vendor" ].join(':'),
+          [ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':')
         ]
       }
       
