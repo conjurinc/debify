@@ -10,7 +10,7 @@ Docker.options[:read_timeout] = 300
 # This is used to turn on DEBUG notices for the test case operation. For instance,
 # messages from "evoke configure"
 module DebugMixin
-  DEBUG = ENV['DEBUG']
+  DEBUG = ENV['DEBUG'].nil? ? true : ENV['DEBUG'].downcase == 'true'
 
   def debug *a
     DebugMixin.debug *a
@@ -172,9 +172,6 @@ Then the evoke "test-install" command is used to install the test code in the
 /src/<project-name>. Basically, the development bundle is installed and the database
 configuration (if any) is setup.
 
-Next, an optional "configure-script" from the project source tree is run, with the 
-container id as the program argument. This command waits for Conjur to be healthy again.
-
 Finally, a test script from the project source tree is run, again with the container
 id as the program argument. 
 
@@ -200,9 +197,6 @@ command "test" do |c|
   c.default_value true
   c.switch [ :pull ]
     
-  c.desc "Shell script to configure the appliance before testing"
-  c.flag [ :c, "configure-script" ]
-    
   c.action do |global_options,cmd_options,args|
     raise "project-name is required" unless project_name = args.shift
     raise "test-script is required" unless test_script = args.shift
@@ -217,27 +211,59 @@ command "test" do |c|
     Dir.chdir dir do
       image_tag = cmd_options["image-tag"] or raise "image-tag is required"
       appliance_image_id = [ cmd_options[:image], image_tag ].join(":")
-      configure_script = cmd_options["configure-script"]
         
-      raise "#{configure_script} does not exist or is not a file" unless configure_script.nil? || File.file?(configure_script)
       raise "#{test_script} does not exist or is not a file" unless File.file?(test_script)
-        
-      appliance_image = if cmd_options[:pull]
-        Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER
-      else
-        Docker::Image.get(appliance_image_id)
-      end
       
+      Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
+      
+      def build_test_image(appliance_image_id, project_name)
+        deb = "conjur-#{project_name}_latest_amd64.deb"
+        dockerfile = <<-DOCKERFILE
+FROM #{appliance_image_id}
+
+COPY #{deb} /tmp/
+
+RUN rm -rf /opt/conjur/#{project_name}
+RUN rm -f /opt/conjur/etc/#{project_name}.conf
+RUN rm -f /usr/local/bin/conjur-#{project_name}
+
+RUN dpkg --force all --purge conjur-#{project_name} || true
+RUN dpkg --install /tmp/#{deb}
+
+RUN touch /etc/service/conjur/down
+        DOCKERFILE
+        Dir.mktmpdir do |tmpdir|
+          tmpfile = Tempfile.new('Dockerfile', tmpdir)
+          File.write(tmpfile, dockerfile)
+          dockerfile_name = File.basename(tmpfile.path)
+          tar_cmd = "tar -cvzh -C #{tmpdir} #{dockerfile_name} -C #{Dir.pwd} #{deb}"
+          tar = open("| #{tar_cmd}")
+          begin
+            Docker::Image.build_from_tar(tar, :dockerfile => dockerfile_name, &DebugMixin::DOCKER)
+          ensure
+            tar.close
+          end
+        end
+      end
+
+      appliance_image = build_test_image(appliance_image_id, project_name)
+      
+      vendor_dir = File.expand_path("tmp/debify/#{project_name}/vendor", ENV['HOME'])
+      dot_bundle_dir = File.expand_path("tmp/debify/#{project_name}/.bundle", ENV['HOME'])
+      FileUtils.mkdir_p vendor_dir
+      FileUtils.mkdir_p dot_bundle_dir
       options = {
         'Image' => appliance_image.id,
         'Env' => [
           "CONJUR_AUTHN_LOGIN=admin",
-          "CONJUR_ENV=production",
+          "CONJUR_ENV=appliance",
           "CONJUR_AUTHN_API_KEY=secret",
           "CONJUR_ADMIN_PASSWORD=secret",
         ],
         'Binds' => [
-          [ dir, "/src/#{project_name}" ].join(':')
+          [ dir, "/src/#{project_name}" ].join(':'),
+          [ vendor_dir, "/src/#{project_name}/vendor" ].join(':'),
+          [ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':')
         ]
       }
       
@@ -270,6 +296,7 @@ command "test" do |c|
       def command container, *args
         stdout, stderr, exitcode = container.exec args, &DebugMixin::DOCKER
         exit_now! "Command failed : #{args.join(' ')}", exitcode unless exitcode == 0
+        stdout
       end
       
       begin
@@ -280,32 +307,21 @@ command "test" do |c|
         end
         container.start
 
-        DebugMixin.debug_write "Stopping conjur\n"
-
-        container.exec [ "sv", "stop", "conjur" ], &DebugMixin::DOCKER
+        # Wait for pg/main so that migrations can run
+        30.times do
+          stdout, stderr, exitcode = container.exec %w(sv status pg/main), &DebugMixin::DOCKER
+          status = stdout.join
+          break if exitcode == 0 && status =~ /^run\:/
+          sleep 1
+        end
         
-        DebugMixin.debug_write "Purging source install of #{project_name}\n"
-        
-        command container, "rm", "-rf", "/opt/conjur/#{project_name}"
-        command container, "rm", "-f", "/opt/conjur/etc/#{project_name}.conf"
-        command container, "rm", "-f", "/usr/local/bin/conjur-#{project_name}"
-        container.exec [ "dpkg", "-P", "conjur-#{project_name}" ], &DebugMixin::DOCKER
-        
-        DebugMixin.debug_write "Installing #{project_name}\n"
-        
-        command container, "dpkg", "-i", "/src/#{project_name}/conjur-#{project_name}_latest_amd64.deb"
         command container, "/opt/conjur/evoke/bin/test-install", project_name
 
         DebugMixin.debug_write "Starting conjur\n"
 
+        command container, "rm", "/etc/service/conjur/down"
         command container, "sv", "start", "conjur"
         wait_for_conjur appliance_image, container
-  
-        if configure_script
-          system "./#{configure_script} #{container.id}"
-          exit_now! "#{configure_script} failed with exit code #{$?.exitstatus}", $?.exitstatus unless $?.exitstatus == 0
-          wait_for_conjur appliance_image, container
-        end
   
         system "./#{test_script} #{container.id}"
         exit_now! "#{test_script} failed with exit code #{$?.exitstatus}", $?.exitstatus unless $?.exitstatus == 0
