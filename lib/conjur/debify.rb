@@ -243,7 +243,7 @@ command "test" do |c|
       if ENV['SSH_AUTH_SOCK']
         options['Env'].push "SSH_AUTH_SOCK=#{ENV['SSH_AUTH_SOCK']}"
       else
-        $stderr.puts "Warning: No SSH_AUTH_SOCK, authentication to resource such as GitHub might fail""
+        $stderr.puts "Warning: No SSH_AUTH_SOCK, authentication to resource such as GitHub might fail"
       end
       
       container = Docker::Container.create(options)
