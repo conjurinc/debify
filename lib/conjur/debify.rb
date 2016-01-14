@@ -256,7 +256,7 @@ RUN touch /etc/service/conjur/down
         'Image' => appliance_image.id,
         'Env' => [
           "CONJUR_AUTHN_LOGIN=admin",
-          "CONJUR_ENV=production",
+          "CONJUR_ENV=appliance",
           "CONJUR_AUTHN_API_KEY=secret",
           "CONJUR_ADMIN_PASSWORD=secret",
         ],
