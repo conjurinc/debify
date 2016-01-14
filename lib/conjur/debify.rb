@@ -222,6 +222,8 @@ FROM #{appliance_image_id}
 COPY #{deb} /tmp/
 RUN dpkg --force all --purge conjur-#{project_name} || true
 RUN dpkg --install /tmp/#{deb}
+
+RUN touch /etc/service/conjur/down
         DOCKERFILE
         Dir.mktmpdir do |tmpdir|
           tmpfile = Tempfile.new('Dockerfile', tmpdir)
@@ -281,6 +283,7 @@ RUN dpkg --install /tmp/#{deb}
       def command container, *args
         stdout, stderr, exitcode = container.exec args, &DebugMixin::DOCKER
         exit_now! "Command failed : #{args.join(' ')}", exitcode unless exitcode == 0
+        stdout
       end
       
       begin
@@ -291,11 +294,20 @@ RUN dpkg --install /tmp/#{deb}
         end
         container.start
 
+        # Wait for pg/main so that migrations can run
+        30.times do
+          stdout, stderr, exitcode = container.exec %w(sv status pg/main), &DebugMixin::DOCKER
+          status = stdout.join
+          break if exitcode == 0 && status =~ /^run\:/
+          sleep 1
+        end
+        
         command container, "/opt/conjur/evoke/bin/test-install", project_name
 
-        DebugMixin.debug_write "Restarting conjur\n"
+        DebugMixin.debug_write "Starting conjur\n"
 
-        command container, "sv", "restart", "conjur"
+        command container, "rm", "/etc/service/conjur/down"
+        command container, "sv", "start", "conjur"
         wait_for_conjur appliance_image, container
   
         system "./#{test_script} #{container.id}"
