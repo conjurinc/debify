@@ -58,6 +58,98 @@ def detect_version
   end
 end
 
+def git_files
+  (`git ls-files -z`.split("\x0") + ['Gemfile.lock']).uniq
+end
+
+desc "Clean current working directory of non-Git-managed files"
+long_desc <<DESC
+Reliable builds depend on having a clean working directory.
+
+Because debify runs some commands in volume-mounted Docker containers,
+it is capable of creating root-owned files.
+
+This command will delete all files in the working directory that are not
+git-managed. The command is designed to run in Jenkins. Therefore, it will
+only perform file deletion if:
+
+* The current user, as provided by Etc.getlogin, is 'jenkins'
+* The BUILD_NUMBER environment variable is set
+
+File deletion can be compelled using the "force" option.
+DESC
+arg_name "project-name -- <fpm-arguments>"
+command "clean" do |c|
+  c.desc "Set the current working directory"
+  c.flag [ :d, "dir" ]
+    
+  c.desc "Ignore (don't delete) a file or directory"
+  c.flag [ :i, :ignore ]
+  
+  c.desc "Force file deletion even if if this doesn't look like a Jenkins environment"
+  c.switch [ :force ]
+    
+  c.action do |global_options,cmd_options,args|
+    def looks_like_jenkins?
+      require 'etc'
+      Etc.getlogin == 'jenkins' && ENV['BUILD_NUMBER']
+    end
+    
+    require 'set'
+    perform_deletion = cmd_options[:force] || looks_like_jenkins?
+    if !perform_deletion
+      $stderr.puts "No --force, and this doesn't look like Jenkins. I won't actually delete anything"
+    end
+    @ignore_list = Array(cmd_options[:ignore]) + [ '.', '..', '.git' ]
+     
+    def ignore_file? f
+      @ignore_list.find{|ignore| f.index(ignore) == 0}
+    end
+       
+    dir = cmd_options[:dir] || '.'
+    dir = File.expand_path(dir)
+    Dir.chdir dir do
+      require 'find'
+      find_files = []
+      Find.find('.').each do |p|
+        find_files.push p[2..-1]
+      end
+      find_files.compact!
+      delete_files = (find_files - git_files)
+      delete_files.delete_if{|file| 
+        File.directory?(file) || ignore_file?(file)
+      }
+      image = Docker::Image.create 'fromImage' => "alpine:3.3"
+      options = {
+        'Cmd'   => [ "sh", "-c", "while true; do sleep 1; done" ],
+        'Image' => image.id,
+        'Binds' => [
+          [ dir, "/src" ].join(':'),
+        ]
+      }
+      container = Docker::Container.create options
+      begin
+        container.start
+        delete_files.each do |file|
+          $stderr.puts file
+          
+          file = "/src/#{file}"
+          cmd = if perform_deletion
+            [ "rm", "-f", file ]
+          else
+            [ "echo", file ]
+          end
+          
+          stdout, stderr, status = container.exec cmd, &DebugMixin::DOCKER
+          $stderr.puts "Failed to delete #{file}" unless status == 0
+        end
+      ensure
+        container.delete force: true
+      end
+    end
+  end
+end
+
 desc "Build a debian package for a project"
 long_desc <<DESC
 The package is built using fpm (https://github.com/jordansissel/fpm).
@@ -115,7 +207,7 @@ command "package" do |c|
       
       output = StringIO.new
       Gem::Package::TarWriter.new(output) do |tar|
-        (`git ls-files -z`.split("\x0") + ['Gemfile.lock']).uniq.each do |fname|
+        git_files.each do |fname|
           stat = File.stat(fname)
           tar.add_file(fname, stat.mode) { |tar_file| tar_file.write(File.read(fname)) }
         end
