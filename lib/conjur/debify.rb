@@ -315,11 +315,13 @@ FROM #{appliance_image_id}
 
 COPY #{deb} /tmp/
 
+RUN dpkg --install /tmp/#{deb}
+RUN dpkg --force all --purge conjur-#{project_name} || true
+
 RUN rm -rf /opt/conjur/#{project_name}
 RUN rm -f /opt/conjur/etc/#{project_name}.conf
 RUN rm -f /usr/local/bin/conjur-#{project_name}
 
-RUN dpkg --force all --purge conjur-#{project_name} || true
 RUN dpkg --install /tmp/#{deb}
 
 RUN touch /etc/service/conjur/down
