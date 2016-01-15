@@ -54,7 +54,7 @@ arguments :strict
 
 def detect_version
   `git describe --long --tags --abbrev=7 | sed -e 's/^v//'`.strip.tap do |version|
-    raise "No Git version (tag) for project '#{project_name}'" if version.empty?
+    raise "No Git version (tag) for project" if version.empty?
   end
 end
 
@@ -238,7 +238,6 @@ command "package" do |c|
         tar = Gem::Package::TarReader.new deb
         tar.first.tap do |entry|
           open(entry.full_name, 'wb') {|f| f.write(entry.read)}
-          FileUtils.ln_sf entry.full_name, entry.full_name.gsub(version, "latest")
           puts entry.full_name
         end
       ensure
@@ -258,7 +257,7 @@ password, etc). The project source tree is also mounted into the container, at
 /src/<project-name>.
 
 This command then waits for Conjur to initialize and be healthy. It proceeds by
-installing the conjur-<project-name>_latest_amd64.deb from the project working directory.
+installing the conjur-<project-name>_<version>_amd64.deb from the project working directory.
 
 Then the evoke "test-install" command is used to install the test code in the 
 /src/<project-name>. Basically, the development bundle is installed and the database
@@ -285,10 +284,13 @@ command "test" do |c|
   c.desc "Image tag, e.g. 4.5-stable, 4.6-stable"
   c.flag [ :t, "image-tag"]
   
-  c.desc "Pull the image, even if it's in the Docker engine already"
+  c.desc "'docker pull' the Conjur container image"
   c.default_value true
   c.switch [ :pull ]
-    
+
+  c.desc "Specify the deb version; by default, it's computed from the Git tag"
+  c.flag [ :v, :version ]
+        
   c.action do |global_options,cmd_options,args|
     raise "project-name is required" unless project_name = args.shift
     raise "test-script is required" unless test_script = args.shift
@@ -303,24 +305,25 @@ command "test" do |c|
     Dir.chdir dir do
       image_tag = cmd_options["image-tag"] or raise "image-tag is required"
       appliance_image_id = [ cmd_options[:image], image_tag ].join(":")
+      version = cmd_options[:version] || detect_version
+      package_name = "conjur-#{project_name}_#{version}_amd64.deb"
         
       raise "#{test_script} does not exist or is not a file" unless File.file?(test_script)
       
       Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
       
-      def build_test_image(appliance_image_id, project_name)
-        deb = "conjur-#{project_name}_latest_amd64.deb"
+      def build_test_image(appliance_image_id, project_name, package_name)
         dockerfile = <<-DOCKERFILE
 FROM #{appliance_image_id}
 
-COPY #{deb} /tmp/
+COPY #{package_name} /tmp/
 
 RUN rm -rf /opt/conjur/#{project_name}
 RUN rm -f /opt/conjur/etc/#{project_name}.conf
 RUN rm -f /usr/local/bin/conjur-#{project_name}
 
 RUN dpkg --force all --purge conjur-#{project_name} || true
-RUN dpkg --install /tmp/#{deb}
+RUN dpkg --install /tmp/#{package_name}
 
 RUN touch /etc/service/conjur/down
         DOCKERFILE
@@ -328,7 +331,7 @@ RUN touch /etc/service/conjur/down
           tmpfile = Tempfile.new('Dockerfile', tmpdir)
           File.write(tmpfile, dockerfile)
           dockerfile_name = File.basename(tmpfile.path)
-          tar_cmd = "tar -cvzh -C #{tmpdir} #{dockerfile_name} -C #{Dir.pwd} #{deb}"
+          tar_cmd = "tar -cvzh -C #{tmpdir} #{dockerfile_name} -C #{Dir.pwd} #{package_name}"
           tar = open("| #{tar_cmd}")
           begin
             Docker::Image.build_from_tar(tar, :dockerfile => dockerfile_name, &DebugMixin::DOCKER)
@@ -338,7 +341,7 @@ RUN touch /etc/service/conjur/down
         end
       end
 
-      appliance_image = build_test_image(appliance_image_id, project_name)
+      appliance_image = build_test_image(appliance_image_id, project_name, package_name)
       
       vendor_dir = File.expand_path("tmp/debify/#{project_name}/vendor", ENV['HOME'])
       dot_bundle_dir = File.expand_path("tmp/debify/#{project_name}/.bundle", ENV['HOME'])
@@ -448,7 +451,6 @@ command "publish" do |c|
   c.flag [ :v, :version ]
 
   c.desc "Maturity stage of the package, 'testing' or 'stable'"
-  c.default_value "testing"
   c.flag [ :c, :component ]
 
   c.action do |global_options,cmd_options,args|
@@ -457,10 +459,7 @@ command "publish" do |c|
     raise "Receive extra command-line arguments" if args.shift
 
     def detect_component
-      branch = ENV['GIT_BRANCH']
-      unless branch
-        branch = `git describe --all`
-      end
+      branch = ENV['GIT_BRANCH'] || `git rev-parse --abbrev-ref HEAD`.strip
       if %w(master origin/master).include?(branch)
         'stable'
       else
@@ -476,7 +475,6 @@ command "publish" do |c|
     Dir.chdir dir do
       version = cmd_options[:version] || detect_version
       component = cmd_options[:component] || detect_component
-      
       package_name = "conjur-#{project_name}_#{version}_amd64.deb"
 
       publish_image = Docker::Image.build_from_dir File.expand_path('publish', File.dirname(__FILE__)), tag: "debify-publish", &DebugMixin::DOCKER
