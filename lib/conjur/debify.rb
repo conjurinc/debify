@@ -119,32 +119,34 @@ command "clean" do |c|
       delete_files.delete_if{|file| 
         File.directory?(file) || ignore_file?(file)
       }
-      image = Docker::Image.create 'fromImage' => "alpine:3.3"
-      options = {
-        'Cmd'   => [ "sh", "-c", "while true; do sleep 1; done" ],
-        'Image' => image.id,
-        'Binds' => [
-          [ dir, "/src" ].join(':'),
-        ]
-      }
-      container = Docker::Container.create options
-      begin
-        container.start
-        delete_files.each do |file|
-          $stderr.puts file
-          
-          file = "/src/#{file}"
-          cmd = if perform_deletion
-            [ "rm", "-f", file ]
-          else
-            [ "echo", file ]
+      if perform_deletion
+        image = Docker::Image.create 'fromImage' => "alpine:3.3"
+        options = {
+          'Cmd'   => [ "sh", "-c", "while true; do sleep 1; done" ],
+          'Image' => image.id,
+          'Binds' => [
+            [ dir, "/src" ].join(':'),
+          ]
+        }
+        container = Docker::Container.create options
+        begin
+          container.start
+          delete_files.each do |file|
+            puts file
+            
+            file = "/src/#{file}"
+            cmd = [ "rm", "-f", file ]
+            
+            stdout, stderr, status = container.exec cmd, &DebugMixin::DOCKER
+            $stderr.puts "Failed to delete #{file}" unless status == 0
           end
-          
-          stdout, stderr, status = container.exec cmd, &DebugMixin::DOCKER
-          $stderr.puts "Failed to delete #{file}" unless status == 0
+        ensure
+          container.delete force: true
         end
-      ensure
-        container.delete force: true
+      else
+        delete_files.each do |file|
+          puts file
+        end
       end
     end
   end

@@ -3,7 +3,8 @@
 * Remove the need for a 'latest' debian
 * Fix bug in the error message for 'detect_version'
 * Use a more reliable way to detect the current branch
-* Remove the default value of the 'component' flag
+* `publish` : Remove the default value of the 'component' flag
+* `clean` : Don't create a container unless deletions will actually be performed
 
 # 0.7.0
 
