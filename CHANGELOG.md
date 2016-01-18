@@ -1,3 +1,7 @@
+# 0.9.0
+
+* Don't nuke the entire existing source install dir, there may be necessary files in there
+
 # 0.8.0
 
 * Remove the need for a 'latest' debian

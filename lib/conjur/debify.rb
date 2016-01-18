@@ -320,11 +320,8 @@ FROM #{appliance_image_id}
 
 COPY #{package_name} /tmp/
 
-RUN rm -rf /opt/conjur/#{project_name}
-RUN rm -f /opt/conjur/etc/#{project_name}.conf
-RUN rm -f /usr/local/bin/conjur-#{project_name}
-
-RUN dpkg --force all --purge conjur-#{project_name} || true
+RUN if dpkg --list | grep conjur-#{project_name}; then dpkg --force all --purge; fi
+RUN if [ -f /opt/conjur/etc/#{project_name}.conf ]; then rm /opt/conjur/etc/#{project_name}.conf; fi
 RUN dpkg --install /tmp/#{package_name}
 
 RUN touch /etc/service/conjur/down
