@@ -320,7 +320,7 @@ FROM #{appliance_image_id}
 
 COPY #{package_name} /tmp/
 
-RUN if dpkg --list | grep conjur-#{project_name}; then dpkg --force all --purge; fi
+RUN if dpkg --list | grep conjur-#{project_name}; then dpkg --force all --purge conjur-#{project_name}; fi
 RUN if [ -f /opt/conjur/etc/#{project_name}.conf ]; then rm /opt/conjur/etc/#{project_name}.conf; fi
 RUN dpkg --install /tmp/#{package_name}
 

@@ -1,3 +1,7 @@
+# 0.9.1
+
+* Provide the package to purge before installing the new version
+
 # 0.9.0
 
 * Don't nuke the entire existing source install dir, there may be necessary files in there
