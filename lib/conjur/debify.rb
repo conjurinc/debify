@@ -7,8 +7,7 @@ include GLI::App
 
 Docker.options[:read_timeout] = 300
 
-# This is used to turn on DEBUG notices for the test case operation. For instance,
-# messages from "evoke configure"
+# This is used to turn on DEBUG notices.
 module DebugMixin
   DEBUG = ENV['DEBUG'].nil? ? true : ENV['DEBUG'].downcase == 'true'
 
