@@ -7,8 +7,7 @@ include GLI::App
 
 Docker.options[:read_timeout] = 300
 
-# This is used to turn on DEBUG notices for the test case operation. For instance,
-# messages from "evoke configure"
+# This is used to turn on DEBUG notices.
 module DebugMixin
   DEBUG = ENV['DEBUG'].nil? ? true : ENV['DEBUG'].downcase == 'true'
 
@@ -229,7 +228,7 @@ command "package" do |c|
       container = Docker::Container.create options
       begin
         DebugMixin.debug_write "Packaging #{project_name} in container #{container.id}\n"
-        container.tap(&:start).attach { |stream, chunk| $stderr.puts chunk }
+        container.tap(&:start).streaming_logs(follow: true, stdout: true, stderr: true) { |stream, chunk| $stderr.puts "#{chunk}" }
         status = container.wait
         raise "Failed to package #{project_name}" unless status['StatusCode'] == 0
         
