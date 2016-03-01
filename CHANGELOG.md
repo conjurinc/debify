@@ -1,3 +1,7 @@
+# 0.9.2
+
+* Only consider tags matching v*.*.* when determining package version string
+
 # 0.9.1
 
 * Provide the package to purge before installing the new version
