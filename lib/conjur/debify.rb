@@ -7,8 +7,7 @@ include GLI::App
 
 Docker.options[:read_timeout] = 300
 
-# This is used to turn on DEBUG notices for the test case operation. For instance,
-# messages from "evoke configure"
+# This is used to turn on DEBUG notices.
 module DebugMixin
   DEBUG = ENV['DEBUG'].nil? ? true : ENV['DEBUG'].downcase == 'true'
 
@@ -53,7 +52,7 @@ subcommand_option_handling :normal
 arguments :strict
 
 def detect_version
-  `git describe --long --tags --abbrev=7 | sed -e 's/^v//'`.strip.tap do |version|
+  `git describe --long --tags --abbrev=7 --match 'v*.*.*' | sed -e 's/^v//'`.strip.tap do |version|
     raise "No Git version (tag) for project" if version.empty?
   end
 end

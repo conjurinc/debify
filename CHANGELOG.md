@@ -1,6 +1,7 @@
 # 0.9.2
 
 * Print messages to stderr instead of stdout during packaging
+* Only consider tags matching v*.*.* when determining package version string
 
 # 0.9.1
 
