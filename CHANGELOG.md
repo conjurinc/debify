@@ -1,3 +1,7 @@
+# 0.9.2
+
+* Print messages to stderr instead of stdout during packaging
+
 # 0.9.1
 
 * Provide the package to purge before installing the new version
