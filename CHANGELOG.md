@@ -1,3 +1,6 @@
+# 0.10.0
+* Upgrading Ruby for packaging from 2.0 to 2.2.4
+
 # 0.9.2
 
 * Print messages to stderr instead of stdout during packaging
