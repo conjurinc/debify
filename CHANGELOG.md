@@ -1,3 +1,6 @@
+# 0.10.2
+* Fixed publish internal Dockerfile
+
 # 0.10.1
 * Run internal containers as privileged if Docker >= 1.10.0
 

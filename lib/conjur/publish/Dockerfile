@@ -1,11 +1,7 @@
-FROM alpine:3.3
+FROM buildpack-deps:curl
 
-RUN apk --update upgrade && \
-    apk add ca-certificates && \
-    update-ca-certificates && \
-    rm -rf /var/cache/apk/*
-
-RUN wget -O /usr/bin/art \
+RUN curl -kL \
+    -o /usr/bin/art \
     https://bintray.com/artifact/download/jfrog/artifactory-cli-go/1.2.1/artifactory-cli-linux-amd64/art && \
     chmod +x /usr/bin/art
 
