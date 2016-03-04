@@ -125,9 +125,9 @@ command "clean" do |c|
           'Image' => image.id,
           'Binds' => [
             [ dir, "/src" ].join(':'),
-          ],
-          'Privileged' => true
+          ]
         }
+        options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
         container = Docker::Container.create options
         begin
           container.start
@@ -223,9 +223,9 @@ command "package" do |c|
 
       options = {
         'Cmd'   => [ project_name, version ] + fpm_args,
-        'Image' => image.id,
-        'Privileged' => true
+        'Image' => image.id
       }
+      options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
       
       container = Docker::Container.create options
       begin
@@ -359,9 +359,9 @@ RUN touch /etc/service/conjur/down
           [ dir, "/src/#{project_name}" ].join(':'),
           [ vendor_dir, "/src/#{project_name}/vendor" ].join(':'),
           [ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':')
-        ],
-        'Privileged' => true
+        ]
       }
+      options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
       
       container = Docker::Container.create(options)
       
@@ -375,6 +375,7 @@ RUN touch /etc/service/conjur/down
             ]
           }
         }
+        wait_options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
   
         wait_container = Docker::Container.create wait_options
         begin
@@ -504,6 +505,7 @@ command "publish" do |c|
               [ dir, "/src" ].join(':')
           ]
       }
+      options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
   
       container = Docker::Container.create(options)
       begin

@@ -1,3 +1,6 @@
+# 0.10.1
+* Run internal containers as privileged if Docker >= 1.10.0
+
 # 0.10.0
 * Upgrading Ruby for packaging from 2.0 to 2.2.4
 
