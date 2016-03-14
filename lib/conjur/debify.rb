@@ -250,6 +250,37 @@ command "package" do |c|
   end
 end
 
+def wait_for_conjur appliance_image, container
+  wait_options = {
+    'Image' => appliance_image.id,
+    'Entrypoint' => '/opt/conjur/evoke/bin/wait_for_conjur',
+    'HostConfig' => {
+      'Links' => [
+        [ container.id, 'conjur' ].join(":")
+      ]
+    }
+  }
+  wait_options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
+
+  wait_container = Docker::Container.create wait_options
+  begin
+    spawn("docker logs -f #{wait_container.id}", [ :out, :err ] => $stderr).tap do |pid|
+      Process.detach pid
+    end
+    wait_container.start
+    status = wait_container.wait
+    raise "wait_for_conjur failed" unless status['StatusCode'] == 0
+  ensure
+    wait_container.delete(force: true)
+  end
+end
+
+def container_command container, *args
+  stdout, stderr, exitcode = container.exec args, &DebugMixin::DOCKER
+  exit_now! "Command failed : #{args.join(' ')}", exitcode unless exitcode == 0
+  stdout
+end
+
 desc "Test a Conjur debian package in a Conjur appliance container"
 long_desc <<DESC
 First, a Conjur appliance container is created and started. By default, the
@@ -365,37 +396,6 @@ RUN touch /etc/service/conjur/down
       
       container = Docker::Container.create(options)
       
-      def wait_for_conjur appliance_image, container
-        wait_options = {
-          'Image' => appliance_image.id,
-          'Entrypoint' => '/opt/conjur/evoke/bin/wait_for_conjur',
-          'HostConfig' => {
-            'Links' => [
-              [ container.id, 'conjur' ].join(":")
-            ]
-          }
-        }
-        wait_options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
-  
-        wait_container = Docker::Container.create wait_options
-        begin
-          spawn("docker logs -f #{wait_container.id}", [ :out, :err ] => $stderr).tap do |pid|
-            Process.detach pid
-          end
-          wait_container.start
-          status = wait_container.wait
-          raise "wait_for_conjur failed" unless status['StatusCode'] == 0
-        ensure
-          wait_container.delete(force: true)
-        end
-      end
-      
-      def command container, *args
-        stdout, stderr, exitcode = container.exec args, &DebugMixin::DOCKER
-        exit_now! "Command failed : #{args.join(' ')}", exitcode unless exitcode == 0
-        stdout
-      end
-      
       begin
         DebugMixin.debug_write "Testing #{project_name} in container #{container.id}\n"
 
@@ -412,12 +412,12 @@ RUN touch /etc/service/conjur/down
           sleep 1
         end
         
-        command container, "/opt/conjur/evoke/bin/test-install", project_name
+        container_command container, "/opt/conjur/evoke/bin/test-install", project_name
 
         DebugMixin.debug_write "Starting conjur\n"
 
-        command container, "rm", "/etc/service/conjur/down"
-        command container, "sv", "start", "conjur"
+        container_command container, "rm", "/etc/service/conjur/down"
+        container_command container, "sv", "start", "conjur"
         wait_for_conjur appliance_image, container
   
         system "./#{test_script} #{container.id}"
@@ -425,6 +425,91 @@ RUN touch /etc/service/conjur/down
       ensure
         container.delete(force: true) unless cmd_options[:keep]
       end
+    end
+  end
+end
+
+desc "Setup a development sandbox for a Conjur debian package in a Conjur appliance container"
+long_desc <<DESC
+First, a Conjur appliance container is created and started. By default, the
+container image is registry.tld/conjur-appliance-cuke-master. An image tag
+MUST be supplied. This image is configured with all the CONJUR_ environment
+variables setup for the local environment (appliance URL, cert path, admin username and
+password, etc). The project source tree is also mounted into the container, at
+/src/<project-name>, where <project-name> is taken from the name of the current working directory.
+
+Once in the containter, use "/opt/conjur/evoke/bin/dev-install" to install the development bundle of your project.
+DESC
+command "sandbox" do |c|
+  c.desc "Set the current working directory"
+  c.flag [ :d, :dir ]
+
+  c.desc "Image name"
+  c.default_value "registry.tld/conjur-appliance-cuke-master"
+  c.flag [ :i, :image ]
+  
+  c.desc "Image tag, e.g. 4.5-stable, 4.6-stable"
+  c.flag [ :t, "image-tag"]
+
+  c.desc "Bind another source directory into the container. Use <src>:<dest>, where both are full paths."
+  c.flag [ :"bind" ]
+  
+  c.desc "'docker pull' the Conjur container image"
+  c.default_value false
+  c.switch [ :pull ]
+
+  c.action do |global_options,cmd_options,args|
+    raise "Receive extra command-line arguments" if args.shift
+    
+    dir = cmd_options[:dir] || '.'
+    dir = File.expand_path(dir)
+    
+    raise "Directory #{dir} does not exist or is not a directory" unless File.directory?(dir)
+    
+    Dir.chdir dir do
+      image_tag = cmd_options["image-tag"] or raise "image-tag is required"
+      appliance_image_id = [ cmd_options[:image], image_tag ].join(":")
+      
+      appliance_image = if cmd_options[:pull]
+        Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
+      else
+        Docker::Image.get appliance_image_id
+      end
+      
+      project_name = File.basename(Dir.getwd)
+      vendor_dir = File.expand_path("tmp/debify/#{project_name}/vendor", ENV['HOME'])
+      dot_bundle_dir = File.expand_path("tmp/debify/#{project_name}/.bundle", ENV['HOME'])
+      FileUtils.mkdir_p vendor_dir
+      FileUtils.mkdir_p dot_bundle_dir
+      
+      options = {
+        'Image' => appliance_image.id,
+        'Name' => "#{project_name}-sandbox", 
+        'Env' => [
+          "CONJUR_AUTHN_LOGIN=admin",
+          "CONJUR_ENV=appliance",
+          "CONJUR_AUTHN_API_KEY=secret",
+          "CONJUR_ADMIN_PASSWORD=secret",
+        ],
+        'Binds' => [
+          [ File.expand_path(".ssh/id_rsa", ENV['HOME']), "/root/.ssh/id_rsa", 'ro' ].join(':'), 
+          [ dir, "/src/#{project_name}" ].join(':'),
+          [ vendor_dir, "/src/#{project_name}/vendor" ].join(':'),
+          [ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':')
+        ].concat(Array(cmd_options[:bind]))
+      }
+      options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
+      
+      container = Docker::Container.create(options)
+      $stdout.puts container.id
+      
+      spawn("docker logs -f #{container.id}", [ :out, :err ] => $stderr).tap do |pid|
+        Process.detach pid
+      end
+      container.start
+
+      container_command container, %w(apt-get install -y git)
+      wait_for_conjur appliance_image, container
     end
   end
 end

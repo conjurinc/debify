@@ -132,6 +132,47 @@ $ summon debify publish -c stable conjur-example_0.0.1_amd64.deb
 Uploaded 1 artifacts to Artifactory.
 ```
 
+## Create a development session in a Conjur appliance container
+
+
+```
+$ debify help sandbox
+NAME
+    sandbox - Setup a development sandbox for a Conjur debian package in a Conjur appliance container
+
+SYNOPSIS
+    debify [global options] sandbox [command options] 
+
+DESCRIPTION
+    First, a Conjur appliance container is created and started. By default, the container image is 
+    registry.tld/conjur-appliance-cuke-master. An image tag MUST be supplied. This image
+    is configured with all the CONJUR_ environment variables setup for the local environment (appliance URL, 
+    cert path, admin username and password, etc). The project source tree is
+    also mounted into the container, at /src/<project-name>, where <project-name> is taken from the name of the 
+    current working directory.
+
+    Once in the container, use "/opt/conjur/evoke/bin/dev-install" to install the development bundle of your project. 
+
+COMMAND OPTIONS
+    --bind=arg          - Bind another source directory into the container. Use <src>:<dest>, where both are full paths. (default: none)
+    -d, --dir=arg       - Set the current working directory (default: none)
+    -i, --image=arg     - Image name (default: registry.tld/conjur-appliance-cuke-master)
+    --[no-]pull         - 'docker pull' the Conjur container image
+    -t, --image-tag=arg - Image tag, e.g. 4.5-stable, 4.6-stable (default: none)
+```
+
+### Example usage
+
+```sh-session
+authz $ debify sandbox -t $(cat VERSION_APPLIANCE)-stable
+... much logging
+authz $ docker exec -it authz-sandbox bash
+root@7d4217655332:/src/authz# /opt/conjur/evoke/bin/dev-install
+...
+root@7d4217655332:/src/authz# export RAILS_ENV=test
+root@7d4217655332:/src/authz# bundle exec rake db:migrate
+```
+
 ## Installation
 
 Add this line to your application's Gemfile:
