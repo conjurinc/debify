@@ -1,3 +1,7 @@
+# 0.11.1
+
+* Add `name` and `Workingdir` options to the sandbox container.
+
 # 0.11.0
 
 * Add `debify sandbox`.

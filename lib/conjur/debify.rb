@@ -483,8 +483,9 @@ command "sandbox" do |c|
       FileUtils.mkdir_p dot_bundle_dir
       
       options = {
+        'name' => "#{project_name}-sandbox", 
         'Image' => appliance_image.id,
-        'Name' => "#{project_name}-sandbox", 
+        'WorkingDir' => "/src/#{project_name}",
         'Env' => [
           "CONJUR_AUTHN_LOGIN=admin",
           "CONJUR_ENV=appliance",
@@ -496,19 +497,14 @@ command "sandbox" do |c|
           [ dir, "/src/#{project_name}" ].join(':'),
           [ vendor_dir, "/src/#{project_name}/vendor" ].join(':'),
           [ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':')
-        ].concat(Array(cmd_options[:bind]))
+        ] + Array(cmd_options[:bind])
       }
       options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
-      
+
       container = Docker::Container.create(options)
       $stdout.puts container.id
-      
-      spawn("docker logs -f #{container.id}", [ :out, :err ] => $stderr).tap do |pid|
-        Process.detach pid
-      end
       container.start
 
-      container_command container, %w(apt-get install -y git)
       wait_for_conjur appliance_image, container
     end
   end
