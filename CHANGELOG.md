@@ -1,3 +1,8 @@
+# 1.0.0
+
+* Base image used for packaging on Ubuntu 14.04 
+* Install ruby2.2 and related packages
+
 # 0.11.1
 
 * Add `name` and `Workingdir` options to the sandbox container.
