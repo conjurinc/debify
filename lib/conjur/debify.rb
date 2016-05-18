@@ -434,8 +434,13 @@ RUN touch /etc/service/conjur/down
           break if exitcode == 0 && status =~ /^run\:/
           sleep 1
         end
-        
-        container_command container, "/opt/conjur/evoke/bin/test-install", project_name
+
+        # If we're not using shared gems, run dev-install instead of
+        # test-install. Even having to reinstall all the gems is
+        # better than dealing with Docker For Mac's current file
+        # sharing performance.
+        install_cmd = global_options[:'local-bundle'] ? 'test-install' : 'dev-install'
+        container_command container, "/opt/conjur/evoke/bin/#{install_cmd}", project_name
 
         DebugMixin.debug_write "Starting conjur\n"
 
@@ -486,7 +491,7 @@ command "sandbox" do |c|
   c.flag [ :l, :link ], :multiple => true
 
   c.desc 'Run dev-install in /src/<project-name>'
-  c.default_value true
+  c.default_value false
   c.switch [:'dev-install']
 
   c.desc 'Kill previous sandbox container'
