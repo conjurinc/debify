@@ -5,6 +5,16 @@ require 'gli'
 
 include GLI::App
 
+config_file '.debifyrc'
+
+desc 'Set an environment variable (e.g. TERM=xterm) when starting a container'
+flag [:env], :multiple => true
+
+desc 'Mount local bundle to reuse gems from previous installation'
+default_value true
+switch [:'local-bundle']
+
+
 Docker.options[:read_timeout] = 300
 
 # This is used to turn on DEBUG notices.
@@ -33,11 +43,17 @@ module DebugMixin
       debug a.last
     else
        a.each do |line|
-         line = JSON.parse(line)
-         line.keys.each do |k|
-           debug line[k]
-         end
-       end
+        begin
+          line = JSON.parse(line)
+          line.keys.each do |k|
+            debug line[k]
+          end
+        rescue JSON::ParserError
+          # Docker For Mac is spitting out invalid JSON, so just print
+          # out the line if parsing fails.
+          debug line
+        end
+      end
     end
   end
 
@@ -324,7 +340,10 @@ command "test" do |c|
 
   c.desc "Specify the deb version; by default, it's computed from the Git tag"
   c.flag [ :v, :version ]
-        
+
+  c.desc "Specify link for test container"
+  c.flag [ :l, :link ], :multiple => true
+
   c.action do |global_options,cmd_options,args|
     raise "project-name is required" unless project_name = args.shift
     raise "test-script is required" unless test_script = args.shift
@@ -387,13 +406,17 @@ RUN touch /etc/service/conjur/down
           "CONJUR_ADMIN_PASSWORD=secret",
         ],
         'Binds' => [
-          [ dir, "/src/#{project_name}" ].join(':'),
-          [ vendor_dir, "/src/#{project_name}/vendor" ].join(':'),
-          [ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':')
+          [ dir, "/src/#{project_name}" ].join(':')
         ]
       }
       options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
-      
+      options['Links'] = cmd_options[:link] if cmd_options[:link] && !cmd_options[:link].empty?
+      if global_options[:'local-bundle']
+        options['Binds']
+          .push([ vendor_dir, "/src/#{project_name}/vendor" ].join(':'))
+          .push([ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':'))
+      end
+
       container = Docker::Container.create(options)
       
       begin
@@ -411,8 +434,13 @@ RUN touch /etc/service/conjur/down
           break if exitcode == 0 && status =~ /^run\:/
           sleep 1
         end
-        
-        container_command container, "/opt/conjur/evoke/bin/test-install", project_name
+
+        # If we're not using shared gems, run dev-install instead of
+        # test-install. Even having to reinstall all the gems is
+        # better than dealing with Docker For Mac's current file
+        # sharing performance.
+        install_cmd = global_options[:'local-bundle'] ? 'test-install' : 'dev-install'
+        container_command container, "/opt/conjur/evoke/bin/#{install_cmd}", project_name
 
         DebugMixin.debug_write "Starting conjur\n"
 
@@ -423,6 +451,7 @@ RUN touch /etc/service/conjur/down
         system "./#{test_script} #{container.id}"
         exit_now! "#{test_script} failed with exit code #{$?.exitstatus}", $?.exitstatus unless $?.exitstatus == 0
       ensure
+        DebugMixin.debug_write "deleting container"
         container.delete(force: true) unless cmd_options[:keep]
       end
     end
@@ -438,7 +467,7 @@ variables setup for the local environment (appliance URL, cert path, admin usern
 password, etc). The project source tree is also mounted into the container, at
 /src/<project-name>, where <project-name> is taken from the name of the current working directory.
 
-Once in the containter, use "/opt/conjur/evoke/bin/dev-install" to install the development bundle of your project.
+Once in the container, use "/opt/conjur/evoke/bin/dev-install" to install the development bundle of your project.
 DESC
 command "sandbox" do |c|
   c.desc "Set the current working directory"
@@ -452,11 +481,22 @@ command "sandbox" do |c|
   c.flag [ :t, "image-tag"]
 
   c.desc "Bind another source directory into the container. Use <src>:<dest>, where both are full paths."
-  c.flag [ :"bind" ]
+  c.flag [ :"bind" ], :multiple => true
   
   c.desc "'docker pull' the Conjur container image"
   c.default_value false
   c.switch [ :pull ]
+
+  c.desc "Specify link for container"
+  c.flag [ :l, :link ], :multiple => true
+
+  c.desc 'Run dev-install in /src/<project-name>'
+  c.default_value false
+  c.switch [:'dev-install']
+
+  c.desc 'Kill previous sandbox container'
+  c.default_value false
+  c.switch [:kill]
 
   c.action do |global_options,cmd_options,args|
     raise "Receive extra command-line arguments" if args.shift
@@ -491,21 +531,37 @@ command "sandbox" do |c|
           "CONJUR_ENV=appliance",
           "CONJUR_AUTHN_API_KEY=secret",
           "CONJUR_ADMIN_PASSWORD=secret",
-        ],
+        ] + global_options[:env],
         'Binds' => [
           [ File.expand_path(".ssh/id_rsa", ENV['HOME']), "/root/.ssh/id_rsa", 'ro' ].join(':'), 
           [ dir, "/src/#{project_name}" ].join(':'),
-          [ vendor_dir, "/src/#{project_name}/vendor" ].join(':'),
-          [ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':')
         ] + Array(cmd_options[:bind])
       }
+      if global_options[:'local-bundle']
+        options['Binds']
+          .push([ vendor_dir, "/src/#{project_name}/vendor" ].join(':'))
+          .push([ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':'))
+      end
+
       options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
+      options['Links'] = cmd_options[:link] unless cmd_options[:link].empty?
+
+      if cmd_options[:kill]
+        previous = Docker::Container.get(options['name']) rescue nil
+        previous.delete(:force => true) if previous
+      end
 
       container = Docker::Container.create(options)
       $stdout.puts container.id
       container.start
 
       wait_for_conjur appliance_image, container
+
+      if cmd_options[:'dev-install']
+        container_command(container, "/opt/conjur/evoke/bin/dev-install", project_name)
+        container_command(container, 'sv', 'restart', "conjur/#{project_name}")
+      end
+
     end
   end
 end
