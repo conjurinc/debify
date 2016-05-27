@@ -1,3 +1,11 @@
+# 1.2.0
+
+* Pin bundler to 1.11.2
+
+# 1.1.0
+
+* Minor workflow tweaks, and some changes to work around Docker For Mac issues
+
 # 1.0.0
 
 * Base image used for packaging on Ubuntu 14.04 

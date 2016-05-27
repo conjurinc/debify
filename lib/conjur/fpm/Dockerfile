@@ -12,7 +12,7 @@ RUN apt-get update -y && \
 # https://github.com/docker-library/ruby/commit/c88f3a67da720bfa9fb1717960d90fd5db11c757
 ENV BUNDLER_VERSION 1.11.2
 
-RUN gem install --no-rdoc --no-ri bundler fpm
+RUN gem install --no-rdoc --no-ri bundler:$BUNDLER_VERSION fpm
 
 ENV GEM_HOME /usr/local/bundle
 ENV BUNDLE_PATH="$GEM_HOME" \
