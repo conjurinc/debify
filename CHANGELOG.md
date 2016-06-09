@@ -1,3 +1,7 @@
+# 1.3.0
+
+* Add `--volumes-from`
+
 # 1.2.1
 
 * Fix typo in error message
