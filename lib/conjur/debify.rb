@@ -207,7 +207,7 @@ command "package" do |c|
     if (delimeter = args.shift) == '--'
       fpm_args = args.dup
     else
-      raise "Unexpected argument '#{delimiter}'"
+      raise "Unexpected argument '#{delimeter}'"
     end
     
     dir = cmd_options[:dir] || '.'

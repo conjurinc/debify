@@ -1,3 +1,7 @@
+# 1.2.1
+
+* Fix typo in error message
+
 # 1.2.0
 
 * Pin bundler to 1.11.2
