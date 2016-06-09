@@ -344,6 +344,9 @@ command "test" do |c|
   c.desc "Specify link for test container"
   c.flag [ :l, :link ], :multiple => true
 
+  c.desc "Specify volume for test container"
+  c.flag [ :'volumes-from' ], :multiple => true
+
   c.action do |global_options,cmd_options,args|
     raise "project-name is required" unless project_name = args.shift
     raise "test-script is required" unless test_script = args.shift
@@ -411,6 +414,7 @@ RUN touch /etc/service/conjur/down
       }
       options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
       options['Links'] = cmd_options[:link] if cmd_options[:link] && !cmd_options[:link].empty?
+      options['VolumesFrom'] = cmd_options[:'volumes-from'] if cmd_options[:'volumes-from'] && !cmd_options[:'volumes-from'].empty?
       if global_options[:'local-bundle']
         options['Binds']
           .push([ vendor_dir, "/src/#{project_name}/vendor" ].join(':'))
@@ -490,6 +494,9 @@ command "sandbox" do |c|
   c.desc "Specify link for container"
   c.flag [ :l, :link ], :multiple => true
 
+  c.desc "Specify volume for container"
+  c.flag [ :'volumes-from' ], :multiple => true
+
   c.desc 'Run dev-install in /src/<project-name>'
   c.default_value false
   c.switch [:'dev-install']
@@ -545,6 +552,7 @@ command "sandbox" do |c|
 
       options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
       options['Links'] = cmd_options[:link] unless cmd_options[:link].empty?
+      options['VolumesFrom'] = cmd_options[:'volumes-from'] unless cmd_options[:'volumes-from'].empty?
 
       if cmd_options[:kill]
         previous = Docker::Container.get(options['name']) rescue nil
