@@ -167,7 +167,7 @@ COMMAND OPTIONS
 authz $ debify sandbox -t $(cat VERSION_APPLIANCE)-stable
 ... much logging
 authz $ docker exec -it authz-sandbox bash
-root@7d4217655332:/src/authz# /opt/conjur/evoke/bin/dev-install
+root@7d4217655332:/src/authz# /opt/conjur/evoke/bin/dev-install authz
 ...
 root@7d4217655332:/src/authz# export RAILS_ENV=test
 root@7d4217655332:/src/authz# bundle exec rake db:migrate
