@@ -1,5 +1,23 @@
 # Debify
 
+## Installation
+
+Add this line to your application's Gemfile:
+
+```ruby
+gem 'conjur-debify'
+```
+
+And then execute:
+```sh-session
+$ bundle
+```
+
+Or install it yourself as a ruby gem:
+```sh-session
+$ gem install conjur-debify
+```
+
 ## Build a package
 
 Builds a Conjur Debian package from a Ruby gem.
@@ -118,7 +136,7 @@ COMMAND OPTIONS
 
 ### Example usage
 
-Assuming a `secrets.yml` like this exists in the source directory:
+Assuming a `secrets.yml` like this exists in the source directory and that you have `summon` with the Conjur provider installed on the machine:
 
 ```yaml
 ARTIFACTORY_USERNAME: !var artifactory/users/jenkins/username
@@ -172,22 +190,6 @@ root@7d4217655332:/src/authz# /opt/conjur/evoke/bin/dev-install authz
 root@7d4217655332:/src/authz# export RAILS_ENV=test
 root@7d4217655332:/src/authz# bundle exec rake db:migrate
 ```
-
-## Installation
-
-Add this line to your application's Gemfile:
-
-```ruby
-gem 'debify'
-```
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install debify
 
 ## Contributing
 
