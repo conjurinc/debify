@@ -1,3 +1,8 @@
+# 1.3.1
+
+* When testing, `docker exec` into the Conjur container to run
+  `/opt/conjur/evoke/bin/wait_for_conjur`.
+
 # 1.3.0
 
 * Add `--volumes-from`

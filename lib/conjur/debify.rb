@@ -266,36 +266,19 @@ command "package" do |c|
   end
 end
 
-def wait_for_conjur appliance_image, container
-  wait_options = {
-    'Image' => appliance_image.id,
-    'Entrypoint' => '/opt/conjur/evoke/bin/wait_for_conjur',
-    'HostConfig' => {
-      'Links' => [
-        [ container.id, 'conjur' ].join(":")
-      ]
-    }
-  }
-  wait_options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
-
-  wait_container = Docker::Container.create wait_options
-  begin
-    spawn("docker logs -f #{wait_container.id}", [ :out, :err ] => $stderr).tap do |pid|
-      Process.detach pid
-    end
-    wait_container.start
-    status = wait_container.wait
-    raise "wait_for_conjur failed" unless status['StatusCode'] == 0
-  ensure
-    wait_container.delete(force: true)
-  end
-end
-
 def container_command container, *args
   stdout, stderr, exitcode = container.exec args, &DebugMixin::DOCKER
   exit_now! "Command failed : #{args.join(' ')}", exitcode unless exitcode == 0
   stdout
 end
+
+def wait_for_conjur appliance_image, container
+  # Add a hosts entry for now, get rid of it when wait_for_conjur no
+  # longer requires it.
+  system("docker exec #{container.id} /bin/bash -c 'echo 127.0.0.1 conjur >> /etc/hosts'")
+  container_command container, '/opt/conjur/evoke/bin/wait_for_conjur'
+end
+
 
 desc "Test a Conjur debian package in a Conjur appliance container"
 long_desc <<DESC
