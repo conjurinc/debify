@@ -1,3 +1,7 @@
+# 1.4.0
+
+* Add `--port` sandbox option
+
 # 1.3.1
 
 * When testing, `docker exec` into the Conjur container to run
