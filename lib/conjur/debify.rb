@@ -524,27 +524,24 @@ command "sandbox" do |c|
           "CONJUR_ENV=appliance",
           "CONJUR_AUTHN_API_KEY=secret",
           "CONJUR_ADMIN_PASSWORD=secret",
-        ] + global_options[:env],
-        'Binds' => [
-          [ File.expand_path(".ssh/id_rsa", ENV['HOME']), "/root/.ssh/id_rsa", 'ro' ].join(':'), 
-          [ dir, "/src/#{project_name}" ].join(':'),
-        ] + Array(cmd_options[:bind]),
-        'HostConfig' => {}
+        ] + global_options[:env]
       }
+
+      options['HostConfig'] = host_config = {}
+      host_config['Binds'] = [
+        [ File.expand_path(".ssh/id_rsa", ENV['HOME']), "/root/.ssh/id_rsa", 'ro' ].join(':'),
+        [ dir, "/src/#{project_name}" ].join(':'),
+      ] + Array(cmd_options[:bind])
+
       if global_options[:'local-bundle']
-        options['Binds']
+        host_config['Binds']
           .push([ vendor_dir, "/src/#{project_name}/vendor" ].join(':'))
           .push([ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':'))
       end
 
-      options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
-      options['Links'] = cmd_options[:link] unless cmd_options[:link].empty?
-      options['VolumesFrom'] = cmd_options[:'volumes-from'] unless cmd_options[:'volumes-from'].empty?
-
-      if cmd_options[:kill]
-        previous = Docker::Container.get(options['name']) rescue nil
-        previous.delete(:force => true) if previous
-      end
+      host_config['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
+      host_config['Links'] = cmd_options[:link] unless cmd_options[:link].empty?
+      host_config['VolumesFrom'] = cmd_options[:'volumes-from'] unless cmd_options[:'volumes-from'].empty?
 
       unless cmd_options[:port].empty?
         port_bindings = Hash.new({})
@@ -552,7 +549,12 @@ command "sandbox" do |c|
           hport, cport = mapping.split(':')
           port_bindings["#{cport}/tcp"] = [{ 'HostPort' => hport }]
         end
-        options['HostConfig']['PortBindings'] = port_bindings
+        host_config['PortBindings'] = port_bindings
+      end
+
+      if cmd_options[:kill]
+        previous = Docker::Container.get(options['name']) rescue nil
+        previous.delete(:force => true) if previous
       end
 
       container = Docker::Container.create(options)
