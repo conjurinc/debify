@@ -68,8 +68,15 @@ subcommand_option_handling :normal
 arguments :strict
 
 def detect_version
-  `git describe --long --tags --abbrev=7 --match 'v*.*.*' | sed -e 's/^v//'`.strip.tap do |version|
-    raise "No Git version (tag) for project" if version.empty?
+  if File.exists?("VERSION") && !(base_commit = `git log --pretty='%h' VERSION | head -n 1`.strip).empty?
+    base_version = File.read("VERSION").strip
+    commits_since = `git log #{base_commit}..HEAD --pretty='%h'`.split("\n").size
+    hash = `git rev-parse --short HEAD`.strip
+    [ [ base_version, commits_since ].join('.'), hash ].join("-")
+  else
+    `git describe --long --tags --abbrev=7 --match 'v*.*.*' | sed -e 's/^v//'`.strip.tap do |version|
+      raise "No Git version (tag) for project" if version.empty?
+    end
   end
 end
 
@@ -333,7 +340,7 @@ command "test" do |c|
   c.action do |global_options,cmd_options,args|
     raise "project-name is required" unless project_name = args.shift
     raise "test-script is required" unless test_script = args.shift
-    raise "Receive extra command-line arguments" if args.shift
+    raise "Received extra command-line arguments" if args.shift
     
     dir = cmd_options[:dir] || '.'
     dir = File.expand_path(dir)
@@ -492,7 +499,7 @@ command "sandbox" do |c|
   c.switch [:kill]
 
   c.action do |global_options,cmd_options,args|
-    raise "Receive extra command-line arguments" if args.shift
+    raise "Received extra command-line arguments" if args.shift
     
     dir = cmd_options[:dir] || '.'
     dir = File.expand_path(dir)
@@ -592,7 +599,7 @@ command "publish" do |c|
   c.desc "Set the current working directory"
   c.flag [ :d, :dir ]
     
-  c.desc "Specify the deb package version; by default, it's computed from the Git tag"
+  c.desc "Specify the deb package version; by default, it's computed automatically"
   c.flag [ :v, :version ]
 
   c.desc "Maturity stage of the package, 'testing' or 'stable'"
@@ -601,7 +608,7 @@ command "publish" do |c|
   c.action do |global_options,cmd_options,args|
     raise "distribution is required" unless distribution = args.shift
     raise "project-name is required" unless project_name = args.shift
-    raise "Receive extra command-line arguments" if args.shift
+    raise "Received extra command-line arguments" if args.shift
 
     def detect_component
       branch = ENV['GIT_BRANCH'] || `git rev-parse --abbrev-ref HEAD`.strip
@@ -662,6 +669,24 @@ command "publish" do |c|
   end
 end
   
+desc "Auto-detect and print the repository verison"
+command "detect-version" do |c|
+  c.desc "Set the current working directory"
+  c.flag [ :d, :dir ]
+  c.action do |global_options,cmd_options,args|
+    raise "Received extra command-line arguments" if args.shift
+
+    dir = cmd_options[:dir] || '.'
+    dir = File.expand_path(dir)
+    
+    raise "Directory #{dir} does not exist or is not a directory" unless File.directory?(dir)
+        
+    Dir.chdir dir do
+      puts detect_version
+    end
+  end
+end
+
 pre do |global,command,options,args|
   # Pre logic here
   # Return true to proceed; false to abort and not call the
