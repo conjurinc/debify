@@ -1,3 +1,8 @@
+# 1.5.0
+
+* Add `detect-version` command.
+* Read version from VERSION file, if it exists.
+
 # 1.4.0
 
 * Add `--port` sandbox option
