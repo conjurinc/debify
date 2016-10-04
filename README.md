@@ -47,7 +47,7 @@ DESCRIPTION
 
 COMMAND OPTIONS
     -d, --dir=arg     - Set the current working directory (default: none)
-    -v, --version=arg - Specify the deb version; by default, it's computed from the Git tag (default: none)
+    -v, --version=arg - Specify the deb version; by default, it's read from the VERSION file (default: none)
 ```
 
 ### Example usage

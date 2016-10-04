@@ -201,7 +201,7 @@ command "package" do |c|
   c.desc "Set the current working directory"
   c.flag [ :d, "dir" ]
   
-  c.desc "Specify the deb version; by default, it's computed from the Git tag"
+  c.desc "Specify the deb version; by default, it's read from the VERSION file"
   c.flag [ :v, :version ]
 
   c.desc "Specify a custom Dockerfile.fpm"
@@ -328,7 +328,7 @@ command "test" do |c|
   c.default_value true
   c.switch [ :pull ]
 
-  c.desc "Specify the deb version; by default, it's computed from the Git tag"
+  c.desc "Specify the deb version; by default, it's read from the VERSION file"
   c.flag [ :v, :version ]
 
   c.desc "Specify link for test container"
