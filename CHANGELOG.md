@@ -1,3 +1,7 @@
+# 1.5.1
+
+* Fix the description of the `--version` argument to indicate that the version now comes from the `VERSION` file.
+
 # 1.5.0
 
 * Add `detect-version` command.
