@@ -9,4 +9,4 @@ RUN bundle install
 
 COPY . /src/
 
-ENTRYPOINT ["bundle", "exec", "debify"]
+ENTRYPOINT ["bundle", "exec", "bin/debify"]
