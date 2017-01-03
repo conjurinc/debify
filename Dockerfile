@@ -3,10 +3,7 @@ FROM ruby:2.2.6
 RUN mkdir -p /src
 WORKDIR /src
 
-COPY Gemfile debify.gemspec /src/
-COPY lib /src/lib/
-RUN bundle install
-
 COPY . /src/
+RUN bundle
 
-ENTRYPOINT ["bundle", "exec", "bin/debify"]
+ENTRYPOINT ["bundle", "exec", "debify"]
