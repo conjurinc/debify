@@ -621,7 +621,6 @@ command "publish" do |c|
 
     dir = cmd_options[:dir] || '.'
     dir = File.expand_path(dir)
-    
     raise "Directory #{dir} does not exist or is not a directory" unless File.directory?(dir)
         
     Dir.chdir dir do
@@ -637,9 +636,17 @@ command "publish" do |c|
       Conjur::Config.load
       Conjur::Config.apply
       conjur = Conjur::Authn.connect nil, noask: true
-      
-      art_username = conjur.variable('artifactory/users/jenkins/username').value
-      art_password = conjur.variable('artifactory/users/jenkins/password').value
+
+      username_var = 'artifactory/users/jenkins/username'
+      password_var = 'artifactory/users/jenkins/password'
+
+      if conjur.variable('ci/artifactory/users/jenkins/username').exists?  # we're on new conjurops
+        username_var.insert(0, 'ci/')
+        password_var.insert(0, 'ci/')
+      end
+
+      art_username = conjur.variable(username_var).value
+      art_password = conjur.variable(password_var).value
 
       options = {
           'Image' => publish_image.id,

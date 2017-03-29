@@ -1,3 +1,7 @@
+# 1.5.2
+
+* Use new conjurops variables in `publish` command, fall back to old conjurops
+
 # 1.5.1
 
 * Fix the description of the `--version` argument to indicate that the version now comes from the `VERSION` file.
