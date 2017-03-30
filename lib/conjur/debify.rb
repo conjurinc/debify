@@ -2,6 +2,8 @@ require "conjur/debify/version"
 require 'docker'
 require 'fileutils'
 require 'gli'
+require 'json'
+require 'base64'
 
 include GLI::App
 
@@ -82,6 +84,20 @@ end
 
 def git_files
   (`git ls-files -z`.split("\x0") + ['Gemfile.lock']).uniq
+end
+
+def login_to_registry(appliance_image_id)
+  config_file = File.expand_path('~/.docker/config.json')
+  if File.exist? config_file
+    json_config = JSON.parse(File.read(config_file))
+    registry = appliance_image_id.split('/')[0]
+
+    json_auth = json_config['auths'][registry]['auth']
+    if json_auth
+      username, password = Base64.decode64(json_auth).split(':')
+      Docker.authenticate! username: username, password: password, serveraddress: registry
+    end
+  end
 end
 
 desc "Clean current working directory of non-Git-managed files"
@@ -341,7 +357,7 @@ command "test" do |c|
     raise "project-name is required" unless project_name = args.shift
     raise "test-script is required" unless test_script = args.shift
     raise "Received extra command-line arguments" if args.shift
-    
+
     dir = cmd_options[:dir] || '.'
     dir = File.expand_path(dir)
     
@@ -355,8 +371,15 @@ command "test" do |c|
       package_name = "conjur-#{project_name}_#{version}_amd64.deb"
         
       raise "#{test_script} does not exist or is not a file" unless File.file?(test_script)
-      
-      Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
+
+      begin
+        tries ||=2
+        Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
+      rescue
+        login_to_registry appliance_image_id
+        retry unless (tries -= 1).zero?
+      end
+
       
       def build_test_image(appliance_image_id, project_name, package_name)
         dockerfile = <<-DOCKERFILE
@@ -384,7 +407,13 @@ RUN touch /etc/service/conjur/down
         end
       end
 
-      appliance_image = build_test_image(appliance_image_id, project_name, package_name)
+      begin
+        tries ||=2
+        appliance_image = build_test_image(appliance_image_id, project_name, package_name)
+      rescue
+        login_to_registry appliance_image_id
+        retry unless (tries -= 1).zero?
+      end
       
       vendor_dir = File.expand_path("tmp/debify/#{project_name}/vendor", ENV['HOME'])
       dot_bundle_dir = File.expand_path("tmp/debify/#{project_name}/.bundle", ENV['HOME'])
@@ -511,7 +540,13 @@ command "sandbox" do |c|
       appliance_image_id = [ cmd_options[:image], image_tag ].join(":")
       
       appliance_image = if cmd_options[:pull]
-        Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
+        begin
+          tries ||=2
+          Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
+        rescue
+          login_to_registry appliance_image_id
+          retry unless (tries -= 1).zero?
+        end
       else
         Docker::Image.get appliance_image_id
       end

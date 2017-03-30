@@ -18,7 +18,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
   
   spec.add_dependency "gli"
-  spec.add_dependency "docker-api"
+  spec.add_dependency "docker-api", "~> 1.33"
   spec.add_dependency "conjur-cli"
 
   spec.add_development_dependency "bundler", "~> 1.7"

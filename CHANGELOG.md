@@ -1,3 +1,7 @@
+# 1.5.3
+
+* debify now uses `~/.docker/config` auth if pulling an image fails due to auth
+
 # 1.5.2
 
 * Use new conjurops variables in `publish` command, fall back to old conjurops
