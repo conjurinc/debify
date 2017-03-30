@@ -1,16 +1,12 @@
 #!/bin/bash -ex
 
-gem install -N bundler
-bundle
-rm -rf features/reports
-cucumber --format pretty --format junit --out features/reports || true
+readonly IMAGENAME='debify'
 
-if [ "$GIT_BRANCH" == "origin/master" ]; then
-  TAG=$(cat lib/conjur/debify/version.rb | grep -o '".*"' | tr -d '"')
+docker build -t $IMAGENAME .
 
-  docker build -t debify .
-  docker tag -f debify registry.tld/debify:$TAG
-  docker tag -f debify registry.tld/debify:latest
-  docker push registry.tld/debify:$TAG
-  docker push registry.tld/debify:latest
-fi
+docker run --rm \
+  -v $PWD/features/reports:/src/features/reports \
+  -v '/var/run/docker.sock:/var/run/docker.sock' \
+  --entrypoint '' \
+  $IMAGENAME \
+  bash -c "bundle exec cucumber --format pretty --format junit --out features/reports"
