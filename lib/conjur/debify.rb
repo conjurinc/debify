@@ -407,7 +407,13 @@ RUN touch /etc/service/conjur/down
         end
       end
 
-      appliance_image = build_test_image(appliance_image_id, project_name, package_name)
+      begin
+        tries ||=2
+        appliance_image = build_test_image(appliance_image_id, project_name, package_name)
+      rescue
+        login_to_registry appliance_image_id
+        retry unless (tries -= 1).zero?
+      end
       
       vendor_dir = File.expand_path("tmp/debify/#{project_name}/vendor", ENV['HOME'])
       dot_bundle_dir = File.expand_path("tmp/debify/#{project_name}/.bundle", ENV['HOME'])
