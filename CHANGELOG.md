@@ -1,3 +1,8 @@
+# 1.5.4
+
+* `debify publish` now checks env var `BRANCH_NAME` as well as `GIT_BRANCH`.
+  Jenkins pipelines use `BRANCH_NAME`, Jenkins jobs use `GIT_BRANCH`.
+
 # 1.5.3
 
 * debify now uses `~/.docker/config` auth if pulling an image fails due to auth
@@ -42,7 +47,7 @@
 
 # 1.0.0
 
-* Base image used for packaging on Ubuntu 14.04 
+* Base image used for packaging on Ubuntu 14.04
 * Install ruby2.2 and related packages
 
 # 0.11.1
