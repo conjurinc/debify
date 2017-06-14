@@ -625,7 +625,7 @@ be auto-detected from Git.
 
 --component should be 'stable' if run after package tests pass or 'testing' if the package is not yet ready for release.
 If you don't specify the component, it will be set to 'testing' unless the current git branch is 'master' or 'origin/master'.
-The git branch is first detected from the env var GIT_BRANCH, and then by checking `git rev-parse --abbrev-ref HEAD`
+The git branch is first detected from the env var GIT_BRANCH or BRANCH_NAME, and then by checking `git rev-parse --abbrev-ref HEAD`
 (which won't give you the answer you want when detached).
 
 DESC
@@ -646,7 +646,7 @@ command "publish" do |c|
     raise "Received extra command-line arguments" if args.shift
 
     def detect_component
-      branch = ENV['GIT_BRANCH'] || `git rev-parse --abbrev-ref HEAD`.strip
+      branch = ENV['GIT_BRANCH'] || ENV['BRANCH_NAME'] || `git rev-parse --abbrev-ref HEAD`.strip
       if %w(master origin/master).include?(branch)
         'stable'
       else
