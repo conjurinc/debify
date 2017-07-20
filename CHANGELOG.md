@@ -1,3 +1,8 @@
+# 1.5.5
+
+* When not on the master branch, `debify publish` uses the branch name as the component name, rather than always using
+  `'testing'`.
+
 # 1.5.4
 
 * `debify publish` now checks env var `BRANCH_NAME` as well as `GIT_BRANCH`.

@@ -637,7 +637,7 @@ command "publish" do |c|
   c.desc "Specify the deb package version; by default, it's computed automatically"
   c.flag [ :v, :version ]
 
-  c.desc "Maturity stage of the package, 'testing' or 'stable'"
+  c.desc "Component to publish to, either 'stable' or the name of the git branch"
   c.flag [ :c, :component ]
 
   c.action do |global_options,cmd_options,args|
@@ -650,7 +650,7 @@ command "publish" do |c|
       if %w(master origin/master).include?(branch)
         'stable'
       else
-        'testing'
+        branch
       end
     end
 
