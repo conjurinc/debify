@@ -650,7 +650,7 @@ command "publish" do |c|
       if %w(master origin/master).include?(branch)
         'stable'
       else
-        branch
+        branch.gsub('/', '.')
       end
     end
 
