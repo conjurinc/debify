@@ -1,4 +1,4 @@
-# 1.5.5
+# 1.6.0
 
 * When not on the master branch, `debify publish` uses the branch name as the component name, rather than always using
   `'testing'`.
