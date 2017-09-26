@@ -109,29 +109,23 @@ NAME
     publish - Publish a debian package to apt repository
 
 SYNOPSIS
-    debify [global options] publish [command options] package
+    debify [global options] publish [command options] distribution project-name
 
 DESCRIPTION
-    Publishes a deb created with `debify package` to our private apt
-    repository.
+    Publishes a deb created with `debify package` to our private apt repository.
 
-    You can use wildcards to select packages to publish, e.g., debify
-    publish *.deb.
+    "distribution" should match the major/minor version of the Conjur appliance you want to install to.
 
-    --distribution should match the major/minor version of the Conjur
-    appliance you want to install to.
+    The package name is a required option. The package version can be specified as a CLI option, or it will be auto-detected from Git.
 
-    --component should be 'stable' if run after package tests pass or
-    'testing' if the package is not yet ready for release.
-
-    ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD must be available
-    in the environment for upload to succeed.
+    --component should be 'stable' if run after package tests pass or 'testing' if the package is not yet ready for release. If you don't specify the component, it will be set to
+    'testing' unless the current git branch is 'master' or 'origin/master'. The git branch is first detected from the env var GIT_BRANCH, and then by checking `git rev-parse
+    --abbrev-ref HEAD` (which won't give you the answer you want when detached).
 
 COMMAND OPTIONS
-    -c, --component=arg    - Maturity stage of the package, 'testing'
-                             or 'stable' (default: testing)
-    -d, --distribution=arg - Lock packages to a Conjur appliance
-                             version (default: 4.6)
+    -c, --component=arg - Maturity stage of the package, 'testing' or 'stable' (default: none)
+    -d, --dir=arg       - Set the current working directory (default: none)
+    -v, --version=arg   - Specify the deb package version; by default, it's computed automatically (default: none)
 ```
 
 ### Example usage
