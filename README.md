@@ -134,7 +134,9 @@ You will need read permission for the `ci/artifactory/users/jenkins/username` an
 
 ```sh-session
 $ debify publish -c stable 0.0.1 example
-Uploading artifact: https://conjurinc.artifactoryonline.com/conjurinc/debian-local/conjur-example_0.1.1-c9fd618_amd64.deb;deb.distribution=0.1.1;deb.component=possum;deb.architecture=amd64
+[Thread 0] Uploading artifact: https://conjurinc.artifactoryonline.com/conjurinc/debian-local/conjur-example_0.1.1-c9fd618_amd64.deb;deb.distribution=0.1.1;deb.component=possum;deb.architecture=amd64
+[Thread 0] Artifactory response: 201 Created
+Uploaded 1 artifacts to Artifactory.
 ```
 
 ## Create a development session in a Conjur appliance container
