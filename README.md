@@ -133,8 +133,8 @@ COMMAND OPTIONS
 Assuming a `secrets.yml` like this exists in the source directory and that you have `summon` with the Conjur provider installed on the machine:
 
 ```yaml
-ARTIFACTORY_USERNAME: !var artifactory/users/jenkins/username
-ARTIFACTORY_PASSWORD: !var artifactory/users/jenkins/password
+ARTIFACTORY_USERNAME: !var ci/artifactory/users/jenkins/username
+ARTIFACTORY_PASSWORD: !var ci/artifactory/users/jenkins/password
 ```
 
 ```sh-session
