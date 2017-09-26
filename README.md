@@ -130,18 +130,11 @@ COMMAND OPTIONS
 
 ### Example usage
 
-Assuming a `secrets.yml` like this exists in the source directory and that you have `summon` with the Conjur provider installed on the machine:
-
-```yaml
-ARTIFACTORY_USERNAME: !var ci/artifactory/users/jenkins/username
-ARTIFACTORY_PASSWORD: !var ci/artifactory/users/jenkins/password
-```
+You will need read permission for the `ci/artifactory/users/jenkins/username` and `ci/artifactory/users/jenkins/password` variables in order to run this command from your local machine.
 
 ```sh-session
-$ summon debify publish -c stable conjur-example_0.0.1_amd64.deb
-[Thread 0] Uploading artifact: https://conjurinc.artifactoryonline.com/conjurinc/debian-local/test.deb;deb.distribution=4.6;deb.component=stable;deb.architecture=amd64
-[Thread 0] Artifactory response: 201 Created
-Uploaded 1 artifacts to Artifactory.
+$ debify publish -c stable 0.0.1 example
+Uploading artifact: https://conjurinc.artifactoryonline.com/conjurinc/debian-local/conjur-example_0.1.1-c9fd618_amd64.deb;deb.distribution=0.1.1;deb.component=possum;deb.architecture=amd64
 ```
 
 ## Create a development session in a Conjur appliance container
