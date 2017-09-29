@@ -298,7 +298,7 @@ end
 def wait_for_conjur appliance_image, container
   # Add a hosts entry for now, get rid of it when wait_for_conjur no
   # longer requires it.
-  system("docker exec #{container.id} /bin/bash -c 'echo 127.0.0.1 conjur >> /etc/hosts'")
+  # system("docker exec #{container.id} /bin/bash -c 'echo 127.0.0.1 conjur >> /etc/hosts'")
   container_command container, '/opt/conjur/evoke/bin/wait_for_conjur'
 end
 
@@ -445,9 +445,9 @@ RUN touch /etc/service/conjur/down
       begin
         DebugMixin.debug_write "Testing #{project_name} in container #{container.id}\n"
 
-        spawn("docker logs -f #{container.id}", [ :out, :err ] => $stderr).tap do |pid|
-          Process.detach pid
-        end
+        #spawn("docker logs -f #{container.id}", [ :out, :err ] => $stderr).tap do |pid|
+        #  Process.detach pid
+        #end
         container.start
 
         # Wait for pg/main so that migrations can run

@@ -3,7 +3,9 @@ FROM ruby:2.2.6
 RUN mkdir -p /src
 WORKDIR /src
 
-COPY . /src/
-RUN bundle
+COPY . ./
 
-ENTRYPOINT ["bundle", "exec", "debify"]
+RUN gem build debify.gemspec
+RUN gem install conjur-debify-1.6.0.gem
+
+ENTRYPOINT ["debify"]
