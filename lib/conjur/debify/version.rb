@@ -1,5 +1,5 @@
 module Conjur
   module Debify
-    VERSION = "1.6.0"
+    VERSION = File.read(File.expand_path('../../../VERSION', __dir__))
   end
 end
