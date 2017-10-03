@@ -13,7 +13,7 @@ pipeline {
     stage('Checkout') {
       steps {
         // Created by the Snippet Generator
-        checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CloneOption', depth: 0, noTags: false, reference: '', shallow: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'conjur-jenkins', url: 'git@github.com:conjurinc/debify.git']]])
+        checkout([$class: 'GitSCM', extensions: [[$class: 'CloneOption', noTags: false]], userRemoteConfigs: [[credentialsId: 'conjur-jenkins', url: 'git@github.com:conjurinc/debify.git']]])
       }
     }
     stage('Build docker image') {
