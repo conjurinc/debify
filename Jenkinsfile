@@ -6,9 +6,19 @@ pipeline {
   options {
     timestamps()
     buildDiscarder(logRotator(daysToKeepStr: '30'))
+    skipDefaultCheckout()
   }
 
   stages {
+    stage('Checkout') {
+      steps {
+        checkout([
+            $class                           : 'GitSCM',
+            extensions                       : [[$class: 'CloneOption', noTags: false]],
+          ])
+      }
+    }
+      
     stage('Build docker image') {
       steps {
         sh './build.sh'
