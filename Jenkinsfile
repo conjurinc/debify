@@ -6,9 +6,16 @@ pipeline {
   options {
     timestamps()
     buildDiscarder(logRotator(daysToKeepStr: '30'))
+    skipDefaultCheckout()
   }
 
   stages {
+    stage('Checkout') {
+      steps {
+        // Created by the Snippet Generator
+        checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CloneOption', depth: 0, noTags: false, reference: '', shallow: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'conjur-jenkins', url: 'git@github.com:conjurinc/debify.git']]])
+      }
+    }
     stage('Build docker image') {
       steps {
         sh './build.sh'
