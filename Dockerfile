@@ -1,6 +1,12 @@
 FROM ruby:2.2.6
 
-# Run Docker In Docker
+### DockerInDocker support is take from
+### https://github.com/jpetazzo/dind/blob/master/Dockerfile . I
+### elected to base this image on ruby, then pull in the (slightly
+### outdated) support for DockerInDocker. Creation of the official
+### docker:dind image much more complicated and didn't lend itself to
+### also running ruby.
+
 RUN apt-get update -qq && apt-get install -qqy \
     apt-transport-https \
     ca-certificates \
@@ -17,7 +23,8 @@ RUN chmod +x /usr/local/bin/wrapdocker
 
 # Define additional metadata for our image.
 VOLUME /var/lib/docker
-# CMD ["wrapdocker"]
+
+### End of DockerInDocker support
 
 RUN mkdir -p /src
 WORKDIR /src
