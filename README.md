@@ -31,16 +31,16 @@ $ VERSION=1.6.1
 $ docker pull registry.tld/conjurinc/debify:$VERSION
 ```
 
-Images are tagged with the version specified in (VERSION)
+Images are tagged with the version specified in [VERSION](./VERSION)
 
 Run a container from the image:
 
 ```sh-session
 $ docker run --rm \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -v $PWD:$PWD \
-  -w $PWD \
-  debify [arguments to debify]
+-v /var/run/docker.sock:/var/run/docker.sock \
+-v $PWD:$PWD \
+-w $PWD \
+debify [arguments to debify]
 ```
 
 Where "arguments to debify" are as described below.
@@ -48,6 +48,11 @@ Where "arguments to debify" are as described below.
 Note that debify itself creates images and starts containers, so it
 needs access to the host's `docker.sock`. Additionally, it requires
 that it be started in root directory of the project being packaged.
+
+You can also use [docker-debify](distrib/docker-debify) to create a
+container. Working in projects other than debify itself, consider
+downloading `docker-debify` from GitHub, rather than copying its
+contents.
 
 ## Build a package
 

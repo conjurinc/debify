@@ -1,0 +1,23 @@
+#!/bin/bash -ex
+
+# If we're running in jenkins, there will be a conjur.identity file
+# with Conjur creds in it. Otherwise, assume the user's netrc has
+# them.
+if [[ -f /etc/conjur.identity ]]; then
+  netrc=/etc/conjur.identity
+else
+  netrc=$HOME/.netrc
+fi
+
+[[ -f "$HOME/.debifyrc" ]] && rc_arg="-v $HOME/.debifyrc:/root/.debifyrc:ro"
+
+# mounting docker socket is required because subcommands launch
+# containers
+docker run -i --rm \
+  -v $PWD:$PWD -w $PWD \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v ${netrc}:/root/.netrc:ro \
+  ${rc_arg} \
+  -e GLI_DEBUG=true -e DEBUG=true \
+  ${DEBIFY_ENTRYPOINT+--entrypoint $DEBIFY_ENTRYPOINT} \
+  debify "$@"

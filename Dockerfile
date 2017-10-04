@@ -26,14 +26,17 @@ VOLUME /var/lib/docker
 
 ### End of DockerInDocker support
 
-RUN mkdir -p /src
-WORKDIR /src
+RUN mkdir -p /debify
+WORKDIR /debify
 
 COPY . ./
 
 RUN gem build debify.gemspec
 
 ARG VERSION
-RUN gem install -V -N conjur-debify-${VERSION}.gem
+RUN gem install -N conjur-debify-${VERSION}.gem
 
-ENTRYPOINT ["wrapdocker", "debify"]
+ARG CONJUR_APPLIANCE_URL
+ENV CONJUR_APPLIANCE_URL ${CONJUR_APPLIANCE_URL:-https://conjur-master-v2.itp.conjur.net/api}
+
+ENTRYPOINT ["/debify/distrib/entrypoint.sh"]
