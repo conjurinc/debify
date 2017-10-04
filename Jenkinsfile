@@ -37,10 +37,7 @@ pipeline {
 
     stage('Push Docker image') {
       when {
-        anyOf {
-          branch 'master'
-          branch 'dockerize_20170929'
-        }
+        branch 'master'
       }
       
       steps {
