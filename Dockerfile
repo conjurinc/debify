@@ -32,6 +32,8 @@ WORKDIR /src
 COPY . ./
 
 RUN gem build debify.gemspec
-RUN gem install -N conjur-debify-1.6.0.gem
+
+ARG VERSION
+RUN gem install -V -N conjur-debify-${VERSION}.gem
 
 ENTRYPOINT ["wrapdocker", "debify"]
