@@ -2,6 +2,9 @@
 
 ## Installation
 
+There are two different ways of installing debify: as a gem, or as a Docker image.
+
+### Installing the gem
 Add this line to your application's Gemfile:
 
 ```ruby
@@ -9,14 +12,42 @@ gem 'conjur-debify'
 ```
 
 And then execute:
+
 ```sh-session
 $ bundle
 ```
 
 Or install it yourself as a ruby gem:
+
 ```sh-session
 $ gem install conjur-debify
 ```
+
+### Installing the Docker image
+Pull the Docker image:
+
+```sh-session
+$ VERSION=1.6.1
+$ docker pull registry.tld/conjurinc/debify:$VERSION
+```
+
+Images are tagged with the version specified in (VERSION)
+
+Run a container from the image:
+
+```sh-session
+$ docker run --rm \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v $PWD:$PWD \
+  -w $PWD \
+  debify [arguments to debify]
+```
+
+Where "arguments to debify" are as described below.
+
+Note that debify itself creates images and starts containers, so it
+needs access to the host's `docker.sock`. Additionally, it requires
+that it be started in root directory of the project being packaged.
 
 ## Build a package
 
@@ -29,7 +60,7 @@ NAME
     
 SYNOPSIS
     debify [global options] package [command options] project_name -- <fpm-arguments>
-
+b
 DESCRIPTION
     The package is built using fpm (https://github.com/jordansissel/fpm).
 
