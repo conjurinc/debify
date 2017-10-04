@@ -47,6 +47,16 @@ pipeline {
         sh './push-image.sh'
       }
     }
+
+    stage('Publish gem') {
+      when {
+        branch 'master'
+      }
+      
+      steps {
+        build job: 'release-rubygems', parameters: [string(name: 'GEM_NAME', value: 'conjur-debify')]
+      }
+    }
   }
 
   post {
