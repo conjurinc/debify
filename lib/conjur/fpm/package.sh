@@ -1,5 +1,6 @@
 #!/bin/bash -ex
 
+date
 project_name=$1
 shift
 version=$1
@@ -46,3 +47,4 @@ fpm -s dir -t deb -n conjur-$project_name -v $version -C . \
 	"$@"
 
 ls -al *.deb
+date
