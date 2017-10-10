@@ -4,4 +4,4 @@ Netrc.configure do |c|
 end
 
 creds = Netrc.read('/root/.netrc')[ENV['CONJUR_APPLIANCE_URL'] + '/authn']
-print "#{creds.login} #{creds.password}"
+print "#{creds.login} #{creds.password}" if creds

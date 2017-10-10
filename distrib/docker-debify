@@ -9,15 +9,19 @@ else
   netrc=$HOME/.netrc
 fi
 
+: ${CONJUR_APPLIANCE_URL=https://conjur-master-v2.itp.conjur.net/api}
+export CONJUR_APPLIANCE_URL
+
 [[ -f "$HOME/.debifyrc" ]] && rc_arg="-v $HOME/.debifyrc:/root/.debifyrc:ro"
 
 # mounting docker socket is required because subcommands launch
 # containers
-docker run -i --rm \
+tty=$(tty -s && echo "-t" || true)
+docker run -i $tty --rm \
+  -e GLI_DEBUG -e DEBUG -e CONJUR_APPLIANCE_URL \
   -v $PWD:$PWD -w $PWD \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v ${netrc}:/root/.netrc:ro \
   ${rc_arg} \
-  -e GLI_DEBUG=true -e DEBUG=true \
   ${DEBIFY_ENTRYPOINT+--entrypoint $DEBIFY_ENTRYPOINT} \
   debify "$@"

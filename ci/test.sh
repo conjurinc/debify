@@ -2,4 +2,7 @@
 
 bundle
 
-cucumber --format pretty --format junit --out features/reports "$@"
+for target in spec cucumber; do
+  bundle exec rake $target || true
+done
+

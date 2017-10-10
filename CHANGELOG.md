@@ -1,3 +1,9 @@
+# 1.7.0
+
+* Read artifactory credentials from the environment
+  (`ARTIFACTORY_USER`, `ARTIFACTORY_PASSWORD`), only contact Conjur if
+  they're not set.
+
 # 1.6.1
 
 * Buils a docker image to run debify, convert tests to use it, pipeline build
