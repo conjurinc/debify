@@ -37,10 +37,14 @@ pipeline {
 
     stage('Push Docker image') {
       when {
-        branch 'master'
+        anyOf {
+          branch 'master'
+          branch 'dockerize_20170929'
+        }
       }
       
       steps {
+        sh './tag-image.sh'
         sh './push-image.sh'
       }
     }
