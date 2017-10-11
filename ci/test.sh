@@ -3,6 +3,6 @@
 bundle
 
 for target in spec cucumber; do
-  bundle exec env TAGS=@only rake $target || true
+  bundle exec rake $target || true
 done
 

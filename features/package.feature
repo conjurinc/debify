@@ -13,7 +13,7 @@ Feature: Packaging
 		And I successfully run `find ../../example`
 		Then the stdout from "find ../../example" should not contain "conjur-example_0.0.1_amd64.deb"
 
-	@only @announce-output
+	@announce-output
 	Scenario: 'example' project can be tested successfully
 		Given I successfully run `env DEBUG=true GLI_DEBUG=true debify package -d ../../example -v 0.0.1 example -- --post-install /distrib/postinstall.sh`
 		When I run `env DEBUG=true GLI_DEBUG=true debify test -t 4.9-stable -v 0.0.1 -d ../../example --no-pull example test.sh`
