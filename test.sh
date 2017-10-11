@@ -1,5 +1,6 @@
 #!/bin/bash -ex
 
-docker run --rm registry.tld/conjurinc/debify:$(< VERSION) config script > docker-debify
+VERSION=$(< VERSION)
+docker run --rm debify:$VERSION config script > docker-debify
 chmod +x docker-debify
-DEBIFY_ENTRYPOINT=ci/test.sh ./docker-debify
+DEBIFY_IMAGE=debify:$VERSION DEBIFY_ENTRYPOINT=ci/test.sh ./docker-debify
