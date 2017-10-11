@@ -24,7 +24,12 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency "bundler", "~> 1.7"
   spec.add_development_dependency "rake", "~> 10.0"
-  spec.add_development_dependency "cucumber"
+  
+  # Pin to cucumbe v2. cucumber v3 changes (breaks) the behavior of
+  # unmatched capture groups with \(d+). In v3, the value of such a
+  # group is 0 instead of nil, which breaks aruba's "I successfully
+  # run...." steps.
+  spec.add_development_dependency "cucumber", '~> 2'
   spec.add_development_dependency "aruba"
   spec.add_development_dependency 'rspec', '~> 3'
   spec.add_development_dependency 'ci_reporter_rspec', '~> 1.0'
