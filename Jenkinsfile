@@ -58,7 +58,7 @@ pipeline {
 
   post {
     always {
-      sh 'docker run -i --rm -v $PWD:/src -w /src alpine/git clean -nxd'
+      sh 'docker run -i --rm -v $PWD:/src -w /src alpine/git clean -fxd'
       deleteDir()
     }
     failure {
