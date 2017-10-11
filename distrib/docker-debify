@@ -1,4 +1,4 @@
-#!/bin/bash -ex
+#!/bin/bash -e
 
 # If we're running in jenkins, there will be a conjur.identity file
 # with Conjur creds in it. Otherwise, assume the user's netrc has
