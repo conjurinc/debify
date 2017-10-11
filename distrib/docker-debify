@@ -24,4 +24,4 @@ docker run -i $tty --rm \
   -v ${netrc}:/root/.netrc:ro \
   ${rc_arg} \
   ${DEBIFY_ENTRYPOINT+--entrypoint $DEBIFY_ENTRYPOINT} \
-  debify "$@"
+  debify:@@DEBIFY_VERSION@@ "$@"

@@ -672,8 +672,10 @@ command 'config' do |c|
   c.action do |_,_,args|
     raise 'no configuration provided' unless config = args.shift
     raise "Received extra command-line arguments" if args.shift
-    
-    system "cat #{File.join('distrib', config)}"
+
+    File.open(File.join('distrib', config)).each do |line|
+      puts line.gsub(/@@DEBIFY_VERSION@@/, Conjur::Debify::VERSION)
+    end
   end
 end
 
