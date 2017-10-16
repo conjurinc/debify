@@ -16,3 +16,4 @@ features/reports
 results.html
 mkmf.log
 *.deb
+*.gem

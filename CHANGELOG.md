@@ -1,3 +1,13 @@
+# 1.7.0
+
+* Read artifactory credentials from the environment
+  (`ARTIFACTORY_USER`, `ARTIFACTORY_PASSWORD`), only contact Conjur if
+  they're not set.
+
+# 1.6.1
+
+* Buils a docker image to run debify, convert tests to use it, pipeline build
+
 # 1.6.0
 
 * When not on the master branch, `debify publish` uses the branch name as the component name, rather than always using

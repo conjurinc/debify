@@ -296,9 +296,6 @@ def container_command container, *args
 end
 
 def wait_for_conjur appliance_image, container
-  # Add a hosts entry for now, get rid of it when wait_for_conjur no
-  # longer requires it.
-  system("docker exec #{container.id} /bin/bash -c 'echo 127.0.0.1 conjur >> /etc/hosts'")
   container_command container, '/opt/conjur/evoke/bin/wait_for_conjur'
 end
 
@@ -641,73 +638,13 @@ command "publish" do |c|
   c.flag [ :c, :component ]
 
   c.action do |global_options,cmd_options,args|
+    require 'conjur/debify/action/publish'
     raise "distribution is required" unless distribution = args.shift
     raise "project-name is required" unless project_name = args.shift
     raise "Received extra command-line arguments" if args.shift
 
-    def detect_component
-      branch = ENV['GIT_BRANCH'] || ENV['BRANCH_NAME'] || `git rev-parse --abbrev-ref HEAD`.strip
-      if %w(master origin/master).include?(branch)
-        'stable'
-      else
-        branch.gsub('/', '.')
-      end
-    end
-
-    dir = cmd_options[:dir] || '.'
-    dir = File.expand_path(dir)
-    raise "Directory #{dir} does not exist or is not a directory" unless File.directory?(dir)
-        
-    Dir.chdir dir do
-      version = cmd_options[:version] || detect_version
-      component = cmd_options[:component] || detect_component
-      package_name = "conjur-#{project_name}_#{version}_amd64.deb"
-
-      publish_image = Docker::Image.build_from_dir File.expand_path('publish', File.dirname(__FILE__)), tag: "debify-publish", &DebugMixin::DOCKER
-      DebugMixin.debug_write "Built base publish image '#{publish_image.id}'\n"
-      
-      require 'conjur/cli'
-      require 'conjur/authn'
-      Conjur::Config.load
-      Conjur::Config.apply
-      conjur = Conjur::Authn.connect nil, noask: true
-
-      username_var = 'artifactory/users/jenkins/username'
-      password_var = 'artifactory/users/jenkins/password'
-
-      if conjur.variable('ci/artifactory/users/jenkins/username').exists?  # we're on new conjurops
-        username_var.insert(0, 'ci/')
-        password_var.insert(0, 'ci/')
-      end
-
-      art_username = conjur.variable(username_var).value
-      art_password = conjur.variable(password_var).value
-
-      options = {
-          'Image' => publish_image.id,
-          'Cmd' => [
-              "art", "upload",
-              "--url", "https://conjurinc.artifactoryonline.com/conjurinc",
-              "--user", art_username,
-              "--password", art_password,
-              "--deb", "#{distribution}/#{component}/amd64",
-              package_name, "debian-local/"
-          ],
-          'Binds' => [
-              [ dir, "/src" ].join(':')
-          ]
-      }
-      options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
-  
-      container = Docker::Container.create(options)
-      begin
-        container.tap(&:start).streaming_logs(follow: true, stdout: true, stderr: true) { |stream, chunk| puts "#{chunk}" }
-        status = container.wait
-        raise "Failed to publish #{package_name}" unless status['StatusCode'] == 0
-      ensure
-        container.delete(force: true)
-      end
-    end
+    require 'pry'; binding.pry
+    Conjur::Debify::Action::Publish.new(distribution, project_name, cmd_options).run
   end
 end
   
@@ -729,6 +666,20 @@ command "detect-version" do |c|
   end
 end
 
+desc 'Show the given configuration'
+arg_name 'configuration'
+command 'config' do |c|
+  c.action do |_,_,args|
+    raise 'no configuration provided' unless config = args.shift
+    raise "Received extra command-line arguments" if args.shift
+
+    File.open(File.join('distrib', config)).each do |line|
+      puts line.gsub(/@@DEBIFY_VERSION@@/, Conjur::Debify::VERSION)
+    end
+  end
+end
+
+  
 pre do |global,command,options,args|
   # Pre logic here
   # Return true to proceed; false to abort and not call the

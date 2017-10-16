@@ -2,6 +2,9 @@
 
 ## Installation
 
+There are two different ways of installing debify: as a gem, or as a Docker image.
+
+### Installing the gem
 Add this line to your application's Gemfile:
 
 ```ruby
@@ -9,14 +12,73 @@ gem 'conjur-debify'
 ```
 
 And then execute:
+
 ```sh-session
 $ bundle
 ```
 
 Or install it yourself as a ruby gem:
+
 ```sh-session
 $ gem install conjur-debify
 ```
+
+### Installing the Docker image
+Pull the Docker image:
+
+```sh-session
+$ VERSION=1.7.0
+$ docker pull registry.tld/conjurinc/debify:$VERSION
+```
+
+Images are tagged with the version specified in [VERSION](./VERSION)
+
+Use the `config` subcommand to get a copy of the wrapper script and the secret definitions for publishing:
+
+```sh-session
+$ docker run --rm debify:$VERSION config script > docker-debify
+$ chmod +x docker-debify
+# Optionally, if publishing a deb
+$ docker run --rm debify:$VERSION config secrets > publishing-secrets.yml
+```
+
+Running `docker-debify` will then start a container configured to run debify:
+
+```sh-session
+$ ./docker-debify help
+NAME
+    debify - Utility commands for building and testing Conjur appliance Debian packages
+
+SYNOPSIS
+    debify [global options] command [command options] [arguments...]
+
+VERSION
+    1.7.0
+
+
+GLOBAL OPTIONS
+    --env=arg           - Set an environment variable (e.g. TERM=xterm) when starting a container (may be used more than once, default:
+                          none)
+    --help              - Show this message
+    --[no-]local-bundle - Mount local bundle to reuse gems from previous installation
+    --version           - Display the program version
+
+COMMANDS
+    clean          - Clean current working directory of non-Git-managed files
+    config         - Show the given configuration
+    detect-version - Auto-detect and print the repository verison
+    help           - Shows a list of commands or help for one command
+    initconfig     - Initialize the config file using current global options
+    package        - Build a debian package for a project
+    publish        - Publish a debian package to apt repository
+    sandbox        - Setup a development sandbox for a Conjur debian package in a Conjur appliance container
+    test           - Test a Conjur debian package in a Conjur appliance container
+```
+
+
+Note that debify itself creates images and starts containers, so it
+needs access to the host's `docker.sock`. Additionally, it requires
+that it be started in root directory of the project being packaged.
 
 ## Build a package
 
@@ -29,7 +91,7 @@ NAME
     
 SYNOPSIS
     debify [global options] package [command options] project_name -- <fpm-arguments>
-
+b
 DESCRIPTION
     The package is built using fpm (https://github.com/jordansissel/fpm).
 
