@@ -37,12 +37,9 @@ pipeline {
 
     stage('Push Docker image') {
       when {
-        anyOf {
-          branch 'master'
-          branch 'dockerize_20170929'
-        }
+        branch 'master'
       }
-      
+
       steps {
         sh './tag-image.sh'
         sh './push-image.sh'
@@ -53,7 +50,7 @@ pipeline {
       when {
         branch 'master'
       }
-      
+
       steps {
         build job: 'release-rubygems', parameters: [string(name: 'GEM_NAME', value: 'conjur-debify')]
       }
