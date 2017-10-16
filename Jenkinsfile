@@ -47,7 +47,7 @@ pipeline {
     }
 
     stage('Publish gem') {
-      agent { label: 'releaser-v2' }
+      agent { label 'releaser-v2' }
       when {
         allOf {
           branch 'master'
