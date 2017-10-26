@@ -20,6 +20,7 @@ tty=$(tty -s && echo "-t" || true)
 docker run -i $tty --rm \
   -e GLI_DEBUG -e DEBUG -e CONJUR_APPLIANCE_URL \
   -e ARTIFACTORY_USER -e ARTIFACTORY_PASSWORD \
+  -e GIT_BRANCH -e BRANCH_NAME \
   -v $PWD:$PWD -w $PWD \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v ${netrc}:/root/.netrc:ro \
