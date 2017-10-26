@@ -1,3 +1,7 @@
+# 1.7.1
+
+* Take out a `require 'pry'` that had snuck in.
+
 # 1.7.0
 
 * Read artifactory credentials from the environment

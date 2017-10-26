@@ -643,7 +643,6 @@ command "publish" do |c|
     raise "project-name is required" unless project_name = args.shift
     raise "Received extra command-line arguments" if args.shift
 
-    require 'pry'; binding.pry
     Conjur::Debify::Action::Publish.new(distribution, project_name, cmd_options).run
   end
 end
