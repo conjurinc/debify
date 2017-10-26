@@ -1,3 +1,7 @@
+# 1.7.3
+
+* Fix publishing support in docker-debify
+
 # 1.7.2
 
 * Take out a `require 'pry'` that had snuck in.
