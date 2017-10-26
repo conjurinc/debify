@@ -1,6 +1,7 @@
-# 1.7.1
+# 1.7.2
 
 * Take out a `require 'pry'` that had snuck in.
+* Fix `publish` subcommand, broken after factoring publish out into a separate action.
 
 # 1.7.0
 

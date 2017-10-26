@@ -58,7 +58,7 @@ module Conjur::Debify
       end
 
       def create_image
-        Docker::Image.build_from_dir File.expand_path('publish', File.dirname(__FILE__)), tag: "debify-publish", &DebugMixin::DOCKER
+        Docker::Image.build_from_dir File.expand_path('../../publish', File.dirname(__FILE__)), tag: "debify-publish", &DebugMixin::DOCKER
       end
 
       def fetch_art_creds
