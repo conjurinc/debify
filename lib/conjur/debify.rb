@@ -120,30 +120,30 @@ arg_name "project-name -- <fpm-arguments>"
 command "clean" do |c|
   c.desc "Set the current working directory"
   c.flag [ :d, "dir" ]
-    
+
   c.desc "Ignore (don't delete) a file or directory"
   c.flag [ :i, :ignore ]
-  
+
   c.desc "Force file deletion even if if this doesn't look like a Jenkins environment"
   c.switch [ :force ]
-    
+
   c.action do |global_options,cmd_options,args|
     def looks_like_jenkins?
       require 'etc'
       Etc.getlogin == 'jenkins' && ENV['BUILD_NUMBER']
     end
-    
+
     require 'set'
     perform_deletion = cmd_options[:force] || looks_like_jenkins?
     if !perform_deletion
       $stderr.puts "No --force, and this doesn't look like Jenkins. I won't actually delete anything"
     end
     @ignore_list = Array(cmd_options[:ignore]) + [ '.', '..', '.git' ]
-     
+
     def ignore_file? f
       @ignore_list.find{|ignore| f.index(ignore) == 0}
     end
-       
+
     dir = cmd_options[:dir] || '.'
     dir = File.expand_path(dir)
     Dir.chdir dir do
@@ -154,7 +154,7 @@ command "clean" do |c|
       end
       find_files.compact!
       delete_files = (find_files - git_files)
-      delete_files.delete_if{|file| 
+      delete_files.delete_if{|file|
         File.directory?(file) || ignore_file?(file)
       }
       if perform_deletion
@@ -172,10 +172,10 @@ command "clean" do |c|
           container.start
           delete_files.each do |file|
             puts file
-            
+
             file = "/src/#{file}"
             cmd = [ "rm", "-f", file ]
-            
+
             stdout, stderr, status = container.exec cmd, &DebugMixin::DOCKER
             $stderr.puts "Failed to delete #{file}" unless status == 0
           end
@@ -200,39 +200,39 @@ The project directory is required to contain:
 * A Gemfile and Gemfile.lock
 * A shell script called debify.sh
 
-debify.sh is invoked by the package build process to create any custom 
-files, other than the project source tree. For example, config files can be 
+debify.sh is invoked by the package build process to create any custom
+files, other than the project source tree. For example, config files can be
 created in /opt/conjur/etc.
 
 The distrib folder in the project source tree is intended to create scripts
 for package pre-install, post-install etc. The distrib folder is not included
-in the deb package, so its contents should be copied to the file system or 
+in the deb package, so its contents should be copied to the file system or
 packaged using fpm arguments.
 
-All arguments to this command which follow the double-dash are propagated to 
+All arguments to this command which follow the double-dash are propagated to
 the fpm command.
 DESC
 arg_name "project-name -- <fpm-arguments>"
 command "package" do |c|
   c.desc "Set the current working directory"
   c.flag [ :d, "dir" ]
-  
+
   c.desc "Specify the deb version; by default, it's read from the VERSION file"
   c.flag [ :v, :version ]
 
   c.desc "Specify a custom Dockerfile.fpm"
   c.flag [ :dockerfile]
-  
+
   c.action do |global_options,cmd_options,args|
     raise "project-name is required" unless project_name = args.shift
-    
+
     fpm_args = []
     if (delimeter = args.shift) == '--'
       fpm_args = args.dup
     else
       raise "Unexpected argument '#{delimeter}'"
     end
-    
+
     dir = cmd_options[:dir] || '.'
     pwd = File.dirname(__FILE__)
 
@@ -245,7 +245,7 @@ command "package" do |c|
       dockerfile = File.read(dockerfile_path)
 
       package_name = "conjur-#{project_name}_#{version}_amd64.deb"
-      
+
       output = StringIO.new
       Gem::Package::TarWriter.new(output) do |tar|
         git_files.each do |fname|
@@ -255,7 +255,7 @@ command "package" do |c|
         tar.add_file('Dockerfile', 0640) { |tar_file| tar_file.write dockerfile.gsub("@@image@@", fpm_image.id) }
       end
       output.rewind
-        
+
       image = Docker::Image.build_from_tar output, &DebugMixin::DOCKER
 
       DebugMixin.debug_write "Built fpm image '#{image.id}' for project #{project_name}\n"
@@ -265,14 +265,14 @@ command "package" do |c|
         'Image' => image.id
       }
       options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
-      
+
       container = Docker::Container.create options
       begin
         DebugMixin.debug_write "Packaging #{project_name} in container #{container.id}\n"
         container.tap(&:start).streaming_logs(follow: true, stdout: true, stderr: true) { |stream, chunk| $stderr.puts "#{chunk}" }
         status = container.wait
         raise "Failed to package #{project_name}" unless status['StatusCode'] == 0
-        
+
         require 'rubygems/package'
         deb = StringIO.new
         container.copy("/src/#{package_name}") { |chunk| deb.write(chunk) }
@@ -312,12 +312,12 @@ password, etc). The project source tree is also mounted into the container, at
 This command then waits for Conjur to initialize and be healthy. It proceeds by
 installing the conjur-<project-name>_<version>_amd64.deb from the project working directory.
 
-Then the evoke "test-install" command is used to install the test code in the 
+Then the evoke "test-install" command is used to install the test code in the
 /src/<project-name>. Basically, the development bundle is installed and the database
 configuration (if any) is setup.
 
 Finally, a test script from the project source tree is run, again with the container
-id as the program argument. 
+id as the program argument.
 
 Then the Conjur container is deleted (use --keep to leave it running).
 DESC
@@ -333,10 +333,10 @@ command "test" do |c|
   c.desc "Image name"
   c.default_value "registry.tld/conjur-appliance-cuke-master"
   c.flag [ :i, :image ]
-  
+
   c.desc "Image tag, e.g. 4.5-stable, 4.6-stable"
   c.flag [ :t, "image-tag"]
-  
+
   c.desc "'docker pull' the Conjur container image"
   c.default_value true
   c.switch [ :pull ]
@@ -357,16 +357,16 @@ command "test" do |c|
 
     dir = cmd_options[:dir] || '.'
     dir = File.expand_path(dir)
-    
+
     raise "Directory #{dir} does not exist or is not a directory" unless File.directory?(dir)
     raise "Directory #{dir} does not contain a .deb file" unless Dir["#{dir}/*.deb"].length >= 1
-    
+
     Dir.chdir dir do
       image_tag = cmd_options["image-tag"] or raise "image-tag is required"
       appliance_image_id = [ cmd_options[:image], image_tag ].join(":")
       version = cmd_options[:version] || detect_version
       package_name = "conjur-#{project_name}_#{version}_amd64.deb"
-        
+
       raise "#{test_script} does not exist or is not a file" unless File.file?(test_script)
 
       begin
@@ -377,7 +377,7 @@ command "test" do |c|
         retry unless (tries -= 1).zero?
       end
 
-      
+
       def build_test_image(appliance_image_id, project_name, package_name)
         dockerfile = <<-DOCKERFILE
 FROM #{appliance_image_id}
@@ -411,7 +411,7 @@ RUN touch /etc/service/conjur/down
         login_to_registry appliance_image_id
         retry unless (tries -= 1).zero?
       end
-      
+
       vendor_dir = File.expand_path("tmp/debify/#{project_name}/vendor", ENV['HOME'])
       dot_bundle_dir = File.expand_path("tmp/debify/#{project_name}/.bundle", ENV['HOME'])
       FileUtils.mkdir_p vendor_dir
@@ -438,7 +438,7 @@ RUN touch /etc/service/conjur/down
       end
 
       container = Docker::Container.create(options)
-      
+
       begin
         DebugMixin.debug_write "Testing #{project_name} in container #{container.id}\n"
 
@@ -467,7 +467,7 @@ RUN touch /etc/service/conjur/down
         container_command container, "rm", "/etc/service/conjur/down"
         container_command container, "sv", "start", "conjur"
         wait_for_conjur appliance_image, container
-  
+
         system "./#{test_script} #{container.id}"
         exit_now! "#{test_script} failed with exit code #{$?.exitstatus}", $?.exitstatus unless $?.exitstatus == 0
       ensure
@@ -496,13 +496,13 @@ command "sandbox" do |c|
   c.desc "Image name"
   c.default_value "registry.tld/conjur-appliance-cuke-master"
   c.flag [ :i, :image ]
-  
+
   c.desc "Image tag, e.g. 4.5-stable, 4.6-stable"
   c.flag [ :t, "image-tag"]
 
   c.desc "Bind another source directory into the container. Use <src>:<dest>, where both are full paths."
   c.flag [ :"bind" ], :multiple => true
-  
+
   c.desc "'docker pull' the Conjur container image"
   c.default_value false
   c.switch [ :pull ]
@@ -526,16 +526,16 @@ command "sandbox" do |c|
 
   c.action do |global_options,cmd_options,args|
     raise "Received extra command-line arguments" if args.shift
-    
+
     dir = cmd_options[:dir] || '.'
     dir = File.expand_path(dir)
-    
+
     raise "Directory #{dir} does not exist or is not a directory" unless File.directory?(dir)
-    
+
     Dir.chdir dir do
       image_tag = cmd_options["image-tag"] or raise "image-tag is required"
       appliance_image_id = [ cmd_options[:image], image_tag ].join(":")
-      
+
       appliance_image = if cmd_options[:pull]
         begin
           tries ||=2
@@ -547,15 +547,15 @@ command "sandbox" do |c|
       else
         Docker::Image.get appliance_image_id
       end
-      
+
       project_name = File.basename(Dir.getwd)
       vendor_dir = File.expand_path("tmp/debify/#{project_name}/vendor", ENV['HOME'])
       dot_bundle_dir = File.expand_path("tmp/debify/#{project_name}/.bundle", ENV['HOME'])
       FileUtils.mkdir_p vendor_dir
       FileUtils.mkdir_p dot_bundle_dir
-      
+
       options = {
-        'name' => "#{project_name}-sandbox", 
+        'name' => "#{project_name}-sandbox",
         'Image' => appliance_image.id,
         'WorkingDir' => "/src/#{project_name}",
         'Env' => [
@@ -630,12 +630,20 @@ arg_name "distribution project-name"
 command "publish" do |c|
   c.desc "Set the current working directory"
   c.flag [ :d, :dir ]
-    
+
   c.desc "Specify the deb package version; by default, it's computed automatically"
   c.flag [ :v, :version ]
 
   c.desc "Component to publish to, either 'stable' or the name of the git branch"
   c.flag [ :c, :component ]
+
+  c.desc "Artifactory URL to publish to"
+  c.default_value "https://conjurinc.jfrog.io/conjurinc"
+  c.flag [ :u, :url]
+
+  c.desc "Artifactory Debian repo to publish package to"
+  c.default_value "debian-private"
+  c.flag [ :r, :repo]
 
   c.action do |global_options,cmd_options,args|
     require 'conjur/debify/action/publish'
@@ -646,7 +654,7 @@ command "publish" do |c|
     Conjur::Debify::Action::Publish.new(distribution, project_name, cmd_options).run
   end
 end
-  
+
 desc "Auto-detect and print the repository verison"
 command "detect-version" do |c|
   c.desc "Set the current working directory"
@@ -656,9 +664,9 @@ command "detect-version" do |c|
 
     dir = cmd_options[:dir] || '.'
     dir = File.expand_path(dir)
-    
+
     raise "Directory #{dir} does not exist or is not a directory" unless File.directory?(dir)
-        
+
     Dir.chdir dir do
       puts detect_version
     end
@@ -678,7 +686,7 @@ command 'config' do |c|
   end
 end
 
-  
+
 pre do |global,command,options,args|
   # Pre logic here
   # Return true to proceed; false to abort and not call the
