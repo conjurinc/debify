@@ -1,3 +1,8 @@
+# 1.8.0
+
+* Added artifactory url option to `debian publish`, defaults to jfrog.io domain
+* Added artifactory repo option to `debian publish`, defaults to 'debian-private'
+
 # 1.7.4
 
 * Fix publishing support in docker-debify

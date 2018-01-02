@@ -31,8 +31,10 @@ pipeline {
     stage('Run feature tests') {
       steps {
         sh './test.sh'
-        junit 'features/reports/*.xml'
       }
+      post { always {
+        junit 'features/reports/*.xml'
+      }}
     }
 
     stage('Push Docker image') {

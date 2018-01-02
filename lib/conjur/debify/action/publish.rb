@@ -17,19 +17,22 @@ module Conjur::Debify
         @project_name = project_name
         @cmd_options = cmd_options
       end
-      
+
       def run
         dir = cmd_options[:dir] || '.'
         dir = File.expand_path(dir)
         raise "Directory #{dir} does not exist or is not a directory" unless File.directory?(dir)
-        
+
         Dir.chdir dir do
           version = cmd_options[:version] || detect_version
           component = cmd_options[:component] || detect_component
           package_name = "conjur-#{project_name}_#{version}_amd64.deb"
 
-          publish_image = create_image 
+          publish_image = create_image
           DebugMixin.debug_write "Built base publish image '#{publish_image.id}'\n"
+
+          art_url = cmd_options[:url]
+          art_repo = cmd_options[:repo]
 
           art_user = ENV['ARTIFACTORY_USER']
           art_password = ENV['ARTIFACTORY_PASSWORD']
@@ -40,12 +43,12 @@ module Conjur::Debify
           options = {
             'Image' => publish_image.id,
             'Cmd' => [
-              "art", "upload",
-              "--url", "https://conjurinc.artifactoryonline.com/conjurinc",
+              "jfrog", "rt", "upload",
+              "--url", art_url,
               "--user", art_user,
               "--password", art_password,
               "--deb", "#{distribution}/#{component}/amd64",
-              package_name, "debian-local/"
+              package_name, "#{art_repo}/"
             ],
             'Binds' => [
               [ dir, "/src" ].join(':')
@@ -67,7 +70,7 @@ module Conjur::Debify
         Conjur::Config.load
         Conjur::Config.apply
         conjur = Conjur::Authn.connect nil, noask: true
-        
+
         username_var = 'ci/artifactory/users/jenkins/username'
         password_var = 'ci/artifactory/users/jenkins/password'
 
@@ -79,12 +82,12 @@ module Conjur::Debify
         begin
           container.tap(&:start).streaming_logs(follow: true, stdout: true, stderr: true) { |stream, chunk| puts "#{chunk}" }
           status = container.wait
-          raise "Failed to publish #{package_name}" unless status['StatusCode'] == 0
+          raise "Failed to publish package" unless status['StatusCode'] == 0
         ensure
           container.delete(force: true)
         end
       end
-      
+
     end
   end
 end
