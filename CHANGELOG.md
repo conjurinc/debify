@@ -1,7 +1,12 @@
+# 1.8.1
+
+* Make Conjur cert available in dockerized debify container
+* Add a cuke for `debify publish`
+
 # 1.8.0
 
-* Added artifactory url option to `debian publish`, defaults to jfrog.io domain
-* Added artifactory repo option to `debian publish`, defaults to 'debian-private'
+* Added artifactory url option to `debify publish`, defaults to jfrog.io domain
+* Added artifactory repo option to `debify publish`, defaults to 'debian-private'
 
 # 1.7.4
 
