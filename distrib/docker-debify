@@ -9,8 +9,15 @@ else
   netrc=$HOME/.netrc
 fi
 
-: ${CONJUR_APPLIANCE_URL=https://conjur-master-v2.itp.conjur.net/api}
-export CONJUR_APPLIANCE_URL
+: ${CONJURRC=/etc/conjur.conf}
+
+conjur_config() {
+  local name=$1; shift
+  grep $name $CONJURRC | awk '{print $2}' | tr -d '"'
+}
+
+export CONJUR_APPLIANCE_URL=$(conjur_config appliance_url)
+export CONJUR_SSL_CERTIFICATE="$(< $(conjur_config cert_file))"
 
 [[ -f "$HOME/.debifyrc" ]] && rc_arg="-v $HOME/.debifyrc:/root/.debifyrc:ro"
 
@@ -18,7 +25,7 @@ export CONJUR_APPLIANCE_URL
 # containers
 tty=$(tty -s && echo "-t" || true)
 docker run -i $tty --rm \
-  -e GLI_DEBUG -e DEBUG -e CONJUR_APPLIANCE_URL \
+  -e GLI_DEBUG -e DEBUG -e CONJUR_APPLIANCE_URL -e CONJUR_SSL_CERTIFICATE \
   -e ARTIFACTORY_USER -e ARTIFACTORY_PASSWORD \
   -e GIT_BRANCH -e BRANCH_NAME \
   -v $PWD:$PWD -w $PWD \
