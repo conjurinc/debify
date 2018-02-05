@@ -1,5 +1,7 @@
 #!/bin/bash -ex
 
+source /debify_utils.sh
+
 project_name=$1
 shift
 version=$1
@@ -16,13 +18,37 @@ fi
 
 package_name=conjur-"$project_name"_"$version"_amd64.deb
 
+# Build dev package first
+echo Building $package_name-dev
+prefix=/src/opt/conjur/project
+cp -al $prefix /dev-pkg
+cd $prefix
+bundle --without development test
+bundle clean
+cd /dev-pkg
+find $prefix -type f | sed -e "s@^$prefix@.@" | xargs rm -f
+find . -type d -empty -delete
+bundle_clean
+
+fpm -s dir -t deb -n conjur-$project_name-dev -v $version -C . \
+	--maintainer "Conjur Inc." \
+	--vendor "Conjur Inc." \
+	--license "Proprietary" \
+	--url "https://www.conjur.net" \
+	--deb-no-default-config-files \
+	--deb-user conjur \
+	--deb-group conjur \
+	--depends "conjur-$project_name = $version" \
+	--prefix /opt/conjur/$project_name \
+	--description "Conjur $project_name service - development files"
+
+
 echo Building $package_name
 
 mv /src/opt/conjur/project /src/opt/conjur/$project_name
 
 cd /src/opt/conjur/$project_name
 
-source /debify_utils.sh
 bundle_clean
 
 cd /src

@@ -5,6 +5,8 @@ require 'gli'
 require 'json'
 require 'base64'
 
+require 'conjur/debify/utils'
+
 include GLI::App
 
 config_file '.debifyrc'
@@ -244,8 +246,6 @@ command "package" do |c|
       dockerfile_path = cmd_options[:dockerfile] || File.expand_path("debify/Dockerfile.fpm", pwd)
       dockerfile = File.read(dockerfile_path)
 
-      package_name = "conjur-#{project_name}_#{version}_amd64.deb"
-
       output = StringIO.new
       Gem::Package::TarWriter.new(output) do |tar|
         git_files.each do |fname|
@@ -273,15 +273,10 @@ command "package" do |c|
         status = container.wait
         raise "Failed to package #{project_name}" unless status['StatusCode'] == 0
 
-        require 'rubygems/package'
-        deb = StringIO.new
-        container.copy("/src/#{package_name}") { |chunk| deb.write(chunk) }
-        deb.rewind
-        tar = Gem::Package::TarReader.new deb
-        tar.first.tap do |entry|
-          open(entry.full_name, 'wb') {|f| f.write(entry.read)}
-          puts entry.full_name
-        end
+        %W(
+          /src/conjur-#{project_name}_#{version}_amd64.deb
+          /dev-pkg/conjur-#{project_name}-dev_#{version}_amd64.deb
+        ).each { |p| Conjur::Debify::Utils.copy_from_container container, p }
       ensure
         container.delete(force: true)
       end
