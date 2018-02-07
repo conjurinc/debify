@@ -5,7 +5,7 @@ RUN apt-get update -y && \
     apt-get install -y software-properties-common && \
     apt-add-repository -y ppa:brightbox/ruby-ng && \
     apt-get update -y && \
-    apt-get install -y build-essential git libpq5 libpq-dev ruby2.2 ruby2.2-dev
+    apt-get install -y build-essential git libpq5 libpq-dev ruby2.2 ruby2.2-dev libffi-dev
 
 
 # Configure bundler and gem the way the ruby:2.2 Dockerfile does, as of 
