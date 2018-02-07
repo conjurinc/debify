@@ -1,3 +1,7 @@
+# 1.8.2
+
+* Install fpm dependency libffi-dev
+
 # 1.8.1
 
 * Make Conjur cert available in dockerized debify container
