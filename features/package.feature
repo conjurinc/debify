@@ -6,6 +6,7 @@ Feature: Packaging
 
   Scenario: 'example' project can be packaged successfully
     Then the stdout should contain exactly "conjur-example_0.0.1_amd64.deb"
+    And the stdout should contain exactly "conjur-example-dev_0.0.1_amd64.deb"
 
   Scenario: 'clean' command will delete non-Git-managed files
     When I successfully run `env DEBUG=true GLI_DEBUG=true debify clean -d ../../example --force`

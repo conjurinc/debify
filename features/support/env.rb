@@ -5,6 +5,7 @@ LIB_DIR = File.join(File.expand_path(File.dirname(__FILE__)),'..','..','lib')
 
 Aruba.configure do |config|
   config.exit_timeout = 1200
+  config.startup_wait_time = 1200
 end
 
 Before do
