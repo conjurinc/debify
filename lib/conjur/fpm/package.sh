@@ -30,18 +30,21 @@ find $prefix -type f | sed -e "s@^$prefix@.@" | xargs rm -f
 find . -type d -empty -delete
 bundle_clean
 
-fpm -s dir -t deb -n conjur-$project_name-dev -v $version -C . \
-	--maintainer "Conjur Inc." \
-	--vendor "Conjur Inc." \
-	--license "Proprietary" \
-	--url "https://www.conjur.net" \
-	--deb-no-default-config-files \
-	--deb-user conjur \
-	--deb-group conjur \
-	--depends "conjur-$project_name = $version" \
-	--prefix /opt/conjur/$project_name \
-	--description "Conjur $project_name service - development files"
-
+if [ `ls | wc -l` -eq 0 ]; then
+  echo No dev dependencies, skipping dev package
+else
+  fpm -s dir -t deb -n conjur-$project_name-dev -v $version -C . \
+    --maintainer "Conjur Inc." \
+    --vendor "Conjur Inc." \
+    --license "Proprietary" \
+    --url "https://www.conjur.net" \
+    --deb-no-default-config-files \
+    --deb-user conjur \
+    --deb-group conjur \
+    --depends "conjur-$project_name = $version" \
+    --prefix /opt/conjur/$project_name \
+    --description "Conjur $project_name service - development files"
+fi
 
 echo Building $package_name
 

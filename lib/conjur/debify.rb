@@ -273,10 +273,16 @@ command "package" do |c|
         status = container.wait
         raise "Failed to package #{project_name}" unless status['StatusCode'] == 0
 
-        %W(
-          /src/conjur-#{project_name}_#{version}_amd64.deb
-          /dev-pkg/conjur-#{project_name}-dev_#{version}_amd64.deb
-        ).each { |p| Conjur::Debify::Utils.copy_from_container container, p }
+        pkg = "conjur-#{project_name}_#{version}_amd64.deb"
+        dev_pkg = "conjur-#{project_name}-dev_#{version}_amd64.deb"
+        Conjur::Debify::Utils.copy_from_container container, "/src/#{pkg}"
+        puts "#{pkg}"
+        begin
+          Conjur::Debify::Utils.copy_from_container container, "/dev-pkg/#{dev_pkg}"
+          puts "#{dev_pkg}"
+        rescue Docker::Error::NotFoundError
+          warn "#{dev_pkg} not found. The package might not have any development dependencies."
+        end
       ensure
         container.delete(force: true)
       end
@@ -326,7 +332,7 @@ command "test" do |c|
   c.switch [ :k, :keep ]
 
   c.desc "Image name"
-  c.default_value "registry.tld/conjur-appliance-cuke-master"
+  c.default_value "registry2.itci.conjur.net/conjur-appliance-cuke-master"
   c.flag [ :i, :image ]
 
   c.desc "Image tag, e.g. 4.5-stable, 4.6-stable"
