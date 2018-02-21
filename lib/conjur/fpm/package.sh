@@ -17,9 +17,10 @@ if [ -z "$version" ]; then
 fi
 
 package_name=conjur-"$project_name"_"$version"_amd64.deb
+dev_package_name=conjur-"$project_name"-dev_"$version"_amd64.deb
 
 # Build dev package first
-echo Building $package_name-dev
+echo Building $dev_package_name
 prefix=/src/opt/conjur/project
 cp -al $prefix /dev-pkg
 cd $prefix

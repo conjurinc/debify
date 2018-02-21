@@ -367,6 +367,7 @@ command "test" do |c|
       appliance_image_id = [ cmd_options[:image], image_tag ].join(":")
       version = cmd_options[:version] || detect_version
       package_name = "conjur-#{project_name}_#{version}_amd64.deb"
+      dev_package_name = "conjur-#{project_name}-dev_#{version}_amd64.deb"
 
       raise "#{test_script} does not exist or is not a file" unless File.file?(test_script)
 
@@ -379,15 +380,16 @@ command "test" do |c|
       end
 
 
-      def build_test_image(appliance_image_id, project_name, package_name)
+      def build_test_image(appliance_image_id, project_name, packages)
+        packages = packages.join " "
         dockerfile = <<-DOCKERFILE
 FROM #{appliance_image_id}
 
-COPY #{package_name} /tmp/
+COPY #{packages} /tmp/
 
 RUN if dpkg --list | grep conjur-#{project_name}; then dpkg --force all --purge conjur-#{project_name}; fi
 RUN if [ -f /opt/conjur/etc/#{project_name}.conf ]; then rm /opt/conjur/etc/#{project_name}.conf; fi
-RUN dpkg --install /tmp/#{package_name}
+RUN cd /tmp; dpkg --install #{packages}
 
 RUN touch /etc/service/conjur/down
         DOCKERFILE
@@ -395,7 +397,7 @@ RUN touch /etc/service/conjur/down
           tmpfile = Tempfile.new('Dockerfile', tmpdir)
           File.write(tmpfile, dockerfile)
           dockerfile_name = File.basename(tmpfile.path)
-          tar_cmd = "tar -cvzh -C #{tmpdir} #{dockerfile_name} -C #{Dir.pwd} #{package_name}"
+          tar_cmd = "tar -cvzh -C #{tmpdir} #{dockerfile_name} -C #{Dir.pwd} #{packages}"
           tar = open("| #{tar_cmd}")
           begin
             Docker::Image.build_from_tar(tar, :dockerfile => dockerfile_name, &DebugMixin::DOCKER)
@@ -405,9 +407,12 @@ RUN touch /etc/service/conjur/down
         end
       end
 
+      packages = [package_name]
+      packages << dev_package_name if File.exist? dev_package_name
+
       begin
         tries ||=2
-        appliance_image = build_test_image(appliance_image_id, project_name, package_name)
+        appliance_image = build_test_image(appliance_image_id, project_name, packages)
       rescue
         login_to_registry appliance_image_id
         retry unless (tries -= 1).zero?
