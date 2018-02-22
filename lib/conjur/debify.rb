@@ -5,6 +5,8 @@ require 'gli'
 require 'json'
 require 'base64'
 
+require 'conjur/debify/utils'
+
 include GLI::App
 
 config_file '.debifyrc'
@@ -244,8 +246,6 @@ command "package" do |c|
       dockerfile_path = cmd_options[:dockerfile] || File.expand_path("debify/Dockerfile.fpm", pwd)
       dockerfile = File.read(dockerfile_path)
 
-      package_name = "conjur-#{project_name}_#{version}_amd64.deb"
-
       output = StringIO.new
       Gem::Package::TarWriter.new(output) do |tar|
         git_files.each do |fname|
@@ -273,14 +273,15 @@ command "package" do |c|
         status = container.wait
         raise "Failed to package #{project_name}" unless status['StatusCode'] == 0
 
-        require 'rubygems/package'
-        deb = StringIO.new
-        container.copy("/src/#{package_name}") { |chunk| deb.write(chunk) }
-        deb.rewind
-        tar = Gem::Package::TarReader.new deb
-        tar.first.tap do |entry|
-          open(entry.full_name, 'wb') {|f| f.write(entry.read)}
-          puts entry.full_name
+        pkg = "conjur-#{project_name}_#{version}_amd64.deb"
+        dev_pkg = "conjur-#{project_name}-dev_#{version}_amd64.deb"
+        Conjur::Debify::Utils.copy_from_container container, "/src/#{pkg}"
+        puts "#{pkg}"
+        begin
+          Conjur::Debify::Utils.copy_from_container container, "/dev-pkg/#{dev_pkg}"
+          puts "#{dev_pkg}"
+        rescue Docker::Error::NotFoundError
+          warn "#{dev_pkg} not found. The package might not have any development dependencies."
         end
       ensure
         container.delete(force: true)
@@ -331,7 +332,7 @@ command "test" do |c|
   c.switch [ :k, :keep ]
 
   c.desc "Image name"
-  c.default_value "registry.tld/conjur-appliance-cuke-master"
+  c.default_value "registry2.itci.conjur.net/conjur-appliance-cuke-master"
   c.flag [ :i, :image ]
 
   c.desc "Image tag, e.g. 4.5-stable, 4.6-stable"
@@ -366,6 +367,7 @@ command "test" do |c|
       appliance_image_id = [ cmd_options[:image], image_tag ].join(":")
       version = cmd_options[:version] || detect_version
       package_name = "conjur-#{project_name}_#{version}_amd64.deb"
+      dev_package_name = "conjur-#{project_name}-dev_#{version}_amd64.deb"
 
       raise "#{test_script} does not exist or is not a file" unless File.file?(test_script)
 
@@ -378,15 +380,16 @@ command "test" do |c|
       end
 
 
-      def build_test_image(appliance_image_id, project_name, package_name)
+      def build_test_image(appliance_image_id, project_name, packages)
+        packages = packages.join " "
         dockerfile = <<-DOCKERFILE
 FROM #{appliance_image_id}
 
-COPY #{package_name} /tmp/
+COPY #{packages} /tmp/
 
 RUN if dpkg --list | grep conjur-#{project_name}; then dpkg --force all --purge conjur-#{project_name}; fi
 RUN if [ -f /opt/conjur/etc/#{project_name}.conf ]; then rm /opt/conjur/etc/#{project_name}.conf; fi
-RUN dpkg --install /tmp/#{package_name}
+RUN cd /tmp; dpkg --install #{packages}
 
 RUN touch /etc/service/conjur/down
         DOCKERFILE
@@ -394,7 +397,7 @@ RUN touch /etc/service/conjur/down
           tmpfile = Tempfile.new('Dockerfile', tmpdir)
           File.write(tmpfile, dockerfile)
           dockerfile_name = File.basename(tmpfile.path)
-          tar_cmd = "tar -cvzh -C #{tmpdir} #{dockerfile_name} -C #{Dir.pwd} #{package_name}"
+          tar_cmd = "tar -cvzh -C #{tmpdir} #{dockerfile_name} -C #{Dir.pwd} #{packages}"
           tar = open("| #{tar_cmd}")
           begin
             Docker::Image.build_from_tar(tar, :dockerfile => dockerfile_name, &DebugMixin::DOCKER)
@@ -404,9 +407,12 @@ RUN touch /etc/service/conjur/down
         end
       end
 
+      packages = [package_name]
+      packages << dev_package_name if File.exist? dev_package_name
+
       begin
         tries ||=2
-        appliance_image = build_test_image(appliance_image_id, project_name, package_name)
+        appliance_image = build_test_image(appliance_image_id, project_name, packages)
       rescue
         login_to_registry appliance_image_id
         retry unless (tries -= 1).zero?

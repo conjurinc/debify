@@ -7,7 +7,7 @@ WORKDIR /src/opt/conjur/project
 COPY Gemfile ./
 COPY Gemfile.lock ./
 
-RUN bundle --deployment --without "test development"
+RUN bundle --deployment
 RUN mkdir -p .bundle
 RUN cp /usr/local/bundle/config .bundle/config
 

@@ -25,7 +25,8 @@ RUN mkdir -p "$GEM_HOME" "$BUNDLE_BIN" \
 
 RUN mkdir /src
 
+ENTRYPOINT [ "/package.sh" ]
+
 COPY debify_utils.sh /
 COPY package.sh      /
 
-ENTRYPOINT [ "/package.sh" ]

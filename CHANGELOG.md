@@ -1,3 +1,7 @@
+# 1.9.0
+
+* Build -dev package with development/test dependencies and use it on `debify test`.
+
 # 1.8.2
 
 * Install fpm dependency libffi-dev
