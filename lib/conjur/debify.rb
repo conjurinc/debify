@@ -332,7 +332,7 @@ command "test" do |c|
   c.switch [ :k, :keep ]
 
   c.desc "Image name"
-  c.default_value "registry2.itci.conjur.net/conjur-appliance-cuke-master"
+  c.default_value "registry.tld/conjur-appliance-cuke-master"
   c.flag [ :i, :image ]
 
   c.desc "Image tag, e.g. 4.5-stable, 4.6-stable"
