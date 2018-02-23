@@ -1,6 +1,9 @@
 #!/bin/bash -ex
 
-TAG=$(< VERSION)
+IFS=. read MAJOR MINOR PATCH <VERSION
 
-docker push registry.tld/conjurinc/debify:$TAG
-docker push registry.tld/conjurinc/debify:latest
+TAGS="latest $(docker images --filter reference="registry.tld/conjurinc/debify:$MAJOR.$MINOR*" --format '{{.Tag}}')"
+for t in $TAGS; do
+  docker push registry.tld/conjurinc/debify:$t
+done
+
