@@ -1,3 +1,7 @@
+# 1.9.1
+
+* Make sure .bundle/config in the 'main' package excludes test and development groups.
+
 # 1.9.0
 
 * Build -dev package with development/test dependencies and use it on `debify test`.

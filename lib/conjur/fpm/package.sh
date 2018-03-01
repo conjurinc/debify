@@ -26,6 +26,7 @@ cp -al $prefix /dev-pkg
 cd $prefix
 bundle --without development test
 bundle clean
+cp /usr/local/bundle/config .bundle/config # bundler for some reason stores config there...
 cd /dev-pkg
 find $prefix -type f | sed -e "s@^$prefix@.@" | xargs rm -f
 find . -type d -empty -delete
