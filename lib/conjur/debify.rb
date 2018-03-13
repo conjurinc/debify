@@ -171,7 +171,7 @@ command "clean" do |c|
         options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
         container = Docker::Container.create options
         begin
-          container.start
+          container.start!
           delete_files.each do |file|
             puts file
 
@@ -269,7 +269,7 @@ command "package" do |c|
       container = Docker::Container.create options
       begin
         DebugMixin.debug_write "Packaging #{project_name} in container #{container.id}\n"
-        container.tap(&:start).streaming_logs(follow: true, stdout: true, stderr: true) { |stream, chunk| $stderr.puts "#{chunk}" }
+        container.tap(&:start!).streaming_logs(follow: true, stdout: true, stderr: true) { |stream, chunk| $stderr.puts "#{chunk}" }
         status = container.wait
         raise "Failed to package #{project_name}" unless status['StatusCode'] == 0
 
@@ -451,7 +451,7 @@ RUN touch /etc/service/conjur/down
         spawn("docker logs -f #{container.id}", [ :out, :err ] => $stderr).tap do |pid|
           Process.detach pid
         end
-        container.start
+        container.start!
 
         # Wait for pg/main so that migrations can run
         30.times do
@@ -604,7 +604,7 @@ command "sandbox" do |c|
 
       container = Docker::Container.create(options)
       $stdout.puts container.id
-      container.start
+      container.start!
 
       wait_for_conjur appliance_image, container
 
