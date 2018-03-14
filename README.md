@@ -249,7 +249,7 @@ As of v1.10.0, both the `test` and `sandbox` subcommands support the `--net` swi
 There are a variety of ways to make use of this feature. One
 possiblity is creating a network using `docker network create`, then
 attaching both the docker-compose services, as well as the Conjur
-appliance container to it. 
+appliance container created by debify, to it. 
 
 As a (somewhat contrived) example, create a new docker network:
 
@@ -257,7 +257,7 @@ As a (somewhat contrived) example, create a new docker network:
 $ docker network create testnet
 ```
 
-Use a docker-compose file like (example/docker-compose.yml):
+Use a docker-compose file like [example/docker-compose.yml](example/docker-compose.yml)
 
 ```yaml
 version: "2"
@@ -273,11 +273,11 @@ services:
       - svcnet
 ```
 
-Bring up the services:
+Bring up the db service:
 
 ```sh-session
 debify $ cd example
-example $ docker-compose up
+example $ docker-compose up -d
 ```
 
 Start a sandbox, see that it can resolve the hostname `mydb`:
