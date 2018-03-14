@@ -1,5 +1,6 @@
-# 1.9.2
+# 1.10.0
 
+* add `--net` support to `test` and `sandbox` subcommands
 * Use Docker::Container.start! to start containers, to avoid
   swallowing important errors.
 

@@ -298,8 +298,27 @@ end
 
 def wait_for_conjur appliance_image, container
   container_command container, '/opt/conjur/evoke/bin/wait_for_conjur'
+rescue
+  $stderr.puts container.logs
+  raise
 end
 
+def network_options(cmd)
+  cmd.desc "Specify link for test container"
+  cmd.flag [ :l, :link ], :multiple => true
+  
+  cmd.desc 'Attach to the specified network'
+  cmd.flag [ :n, :net ]
+end
+
+def check_network_options(cmd_options)
+  raise "Don't specify both --net and --link" if cmd_options[:net] && !cmd_options[:link].empty?
+end
+
+def add_network_config(host_config, cmd_options)
+  host_config['Links'] = cmd_options[:link] if cmd_options[:link] && !cmd_options[:link].empty?
+  host_config['NetworkMode'] = cmd_options[:net] if cmd_options[:net]
+end
 
 desc "Test a Conjur debian package in a Conjur appliance container"
 long_desc <<DESC
@@ -345,12 +364,11 @@ command "test" do |c|
   c.desc "Specify the deb version; by default, it's read from the VERSION file"
   c.flag [ :v, :version ]
 
-  c.desc "Specify link for test container"
-  c.flag [ :l, :link ], :multiple => true
-
   c.desc "Specify volume for test container"
   c.flag [ :'volumes-from' ], :multiple => true
 
+  network_options(c)
+  
   c.action do |global_options,cmd_options,args|
     raise "project-name is required" unless project_name = args.shift
     raise "test-script is required" unless test_script = args.shift
@@ -362,6 +380,8 @@ command "test" do |c|
     raise "Directory #{dir} does not exist or is not a directory" unless File.directory?(dir)
     raise "Directory #{dir} does not contain a .deb file" unless Dir["#{dir}/*.deb"].length >= 1
 
+    check_network_options(cmd_options)
+    
     Dir.chdir dir do
       image_tag = cmd_options["image-tag"] or raise "image-tag is required"
       appliance_image_id = [ cmd_options[:image], image_tag ].join(":")
@@ -430,20 +450,26 @@ RUN touch /etc/service/conjur/down
           "CONJUR_AUTHN_API_KEY=secret",
           "CONJUR_ADMIN_PASSWORD=secret",
         ],
-        'Binds' => [
-          [ dir, "/src/#{project_name}" ].join(':')
-        ]
+        'HostConfig' => {
+          'Binds' => [
+            [ dir, "/src/#{project_name}" ].join(':')
+          ]
+        }
       }
-      options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
-      options['Links'] = cmd_options[:link] if cmd_options[:link] && !cmd_options[:link].empty?
-      options['VolumesFrom'] = cmd_options[:'volumes-from'] if cmd_options[:'volumes-from'] && !cmd_options[:'volumes-from'].empty?
+      host_config = options['HostConfig']
+      
+      host_config['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
+      host_config['VolumesFrom'] = cmd_options[:'volumes-from'] if cmd_options[:'volumes-from'] && !cmd_options[:'volumes-from'].empty?
+
+      add_network_config(host_config, cmd_options)
+      
       if global_options[:'local-bundle']
-        options['Binds']
+        host_config['Binds']
           .push([ vendor_dir, "/src/#{project_name}/vendor" ].join(':'))
           .push([ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':'))
       end
 
-      container = Docker::Container.create(options)
+      container = Docker::Container.create(options.tap {|o| DebugMixin.debug_write "creating container with options #{o.inspect}"})
 
       begin
         DebugMixin.debug_write "Testing #{project_name} in container #{container.id}\n"
@@ -513,8 +539,7 @@ command "sandbox" do |c|
   c.default_value false
   c.switch [ :pull ]
 
-  c.desc "Specify link for container"
-  c.flag [ :l, :link ], :multiple => true
+  network_options(c)
 
   c.desc "Specify volume for container"
   c.flag [ :'volumes-from' ], :multiple => true
@@ -530,6 +555,9 @@ command "sandbox" do |c|
   c.default_value false
   c.switch [:kill]
 
+  c.desc 'A command to run in the sandbox'
+  c.flag [ :c, :command ]
+  
   c.action do |global_options,cmd_options,args|
     raise "Received extra command-line arguments" if args.shift
 
@@ -538,6 +566,8 @@ command "sandbox" do |c|
 
     raise "Directory #{dir} does not exist or is not a directory" unless File.directory?(dir)
 
+    check_network_options(cmd_options)
+    
     Dir.chdir dir do
       image_tag = cmd_options["image-tag"] or raise "image-tag is required"
       appliance_image_id = [ cmd_options[:image], image_tag ].join(":")
@@ -585,8 +615,9 @@ command "sandbox" do |c|
       end
 
       host_config['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
-      host_config['Links'] = cmd_options[:link] unless cmd_options[:link].empty?
       host_config['VolumesFrom'] = cmd_options[:'volumes-from'] unless cmd_options[:'volumes-from'].empty?
+      
+      add_network_config(host_config, cmd_options)
 
       unless cmd_options[:port].empty?
         port_bindings = Hash.new({})
@@ -602,7 +633,7 @@ command "sandbox" do |c|
         previous.delete(:force => true) if previous
       end
 
-      container = Docker::Container.create(options)
+      container = Docker::Container.create(options.tap {|o| DebugMixin.debug_write "creating container with options #{o.inspect}"})
       $stdout.puts container.id
       container.start!
 
@@ -613,6 +644,9 @@ command "sandbox" do |c|
         container_command(container, 'sv', 'restart', "conjur/#{project_name}")
       end
 
+      if cmd_options[:command]
+        container_command(container, '/bin/bash', '-c', cmd_options[:command])
+      end
     end
   end
 end
