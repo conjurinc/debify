@@ -7,6 +7,9 @@ require 'base64'
 
 require 'conjur/debify/utils'
 
+require 'active_support'
+require 'active_support/core_ext'
+
 include GLI::App
 
 config_file '.debifyrc'
@@ -311,13 +314,25 @@ def network_options(cmd)
   cmd.flag [ :n, :net ]
 end
 
-def check_network_options(cmd_options)
-  raise "Don't specify both --net and --link" if cmd_options[:net] && !cmd_options[:link].empty?
-end
-
-def add_network_config(host_config, cmd_options)
-  host_config['Links'] = cmd_options[:link] if cmd_options[:link] && !cmd_options[:link].empty?
-  host_config['NetworkMode'] = cmd_options[:net] if cmd_options[:net]
+def add_network_config(container_config, cmd_options)
+  host_config = container_config['HostConfig']
+  has_links = cmd_options[:link] && !cmd_options[:link].empty?
+  net_name = cmd_options[:net]
+  if net_name
+    host_config['NetworkMode'] = net_name
+    if has_links
+      container_config['NetworkingConfig'] ||= {}
+      container_config['NetworkingConfig'].deep_merge!(
+        'EndpointsConfig' => {
+          net_name => {
+            'Links' => cmd_options[:link]
+          }
+        }
+      )
+    end
+  elsif has_links
+    host_config['Links'] = cmd_options[:link]
+  end
 end
 
 desc "Test a Conjur debian package in a Conjur appliance container"
@@ -380,8 +395,6 @@ command "test" do |c|
     raise "Directory #{dir} does not exist or is not a directory" unless File.directory?(dir)
     raise "Directory #{dir} does not contain a .deb file" unless Dir["#{dir}/*.deb"].length >= 1
 
-    check_network_options(cmd_options)
-    
     Dir.chdir dir do
       image_tag = cmd_options["image-tag"] or raise "image-tag is required"
       appliance_image_id = [ cmd_options[:image], image_tag ].join(":")
@@ -461,7 +474,7 @@ RUN touch /etc/service/conjur/down
       host_config['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
       host_config['VolumesFrom'] = cmd_options[:'volumes-from'] if cmd_options[:'volumes-from'] && !cmd_options[:'volumes-from'].empty?
 
-      add_network_config(host_config, cmd_options)
+      add_network_config(options, cmd_options)
       
       if global_options[:'local-bundle']
         host_config['Binds']
@@ -503,8 +516,10 @@ RUN touch /etc/service/conjur/down
         system "./#{test_script} #{container.id}"
         exit_now! "#{test_script} failed with exit code #{$?.exitstatus}", $?.exitstatus unless $?.exitstatus == 0
       ensure
-        DebugMixin.debug_write "deleting container"
-        container.delete(force: true) unless cmd_options[:keep]
+        unless cmd_options[:keep] || ENV['KEEP_CONTAINERS']
+          DebugMixin.debug_write "deleting container"
+          container.delete(force: true)
+        end
       end
     end
   end
@@ -566,8 +581,6 @@ command "sandbox" do |c|
 
     raise "Directory #{dir} does not exist or is not a directory" unless File.directory?(dir)
 
-    check_network_options(cmd_options)
-    
     Dir.chdir dir do
       image_tag = cmd_options["image-tag"] or raise "image-tag is required"
       appliance_image_id = [ cmd_options[:image], image_tag ].join(":")
@@ -617,7 +630,7 @@ command "sandbox" do |c|
       host_config['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
       host_config['VolumesFrom'] = cmd_options[:'volumes-from'] unless cmd_options[:'volumes-from'].empty?
       
-      add_network_config(host_config, cmd_options)
+      add_network_config(options, cmd_options)
 
       unless cmd_options[:port].empty?
         port_bindings = Hash.new({})

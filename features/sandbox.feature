@@ -13,3 +13,7 @@ Feature: Running a sandbox
   Scenario: sandbox for 'example' project be started on a network other than the default
     Given I start a container named "other_host" on network "test-net"
     Then I successfully start a sandbox for "example" with arguments "-t 4.9-stable --no-pull --net test-net -c 'ping -c1 other_host'"
+
+  Scenario: sandbox for 'example' project be started on a network other than the default with a host aliased
+    Given I start a container named "another_host" on network "test-net"
+    Then I successfully start a sandbox for "example" with arguments "-t 4.9-stable --no-pull --net test-net --link another_host:other_host -c 'ping -c1 other_host'"
