@@ -314,6 +314,23 @@ def network_options(cmd)
   cmd.flag [ :n, :net ]
 end
 
+def short_id(id)
+  if id =~ /\A[0-9a-f]{64}\z/ # 64 hex digits, docker only allows lower case letters in ids
+    $stderr.puts "Warning: found full container id, using short id instead (#{id[0..11]} for #{id})"
+    id[0..11]
+  else
+    id
+  end
+end
+
+# If the source of the link is a full container id, use the short id
+# instead. (Docker doesn't add full container ids as network aliases,
+# only short ids).
+def shorten_source_id(link)
+  src,dest = link.split(':')
+  src && dest ? "#{short_id(src)}:#{dest}" : link
+end
+
 def add_network_config(container_config, cmd_options)
   host_config = container_config['HostConfig']
   has_links = cmd_options[:link] && !cmd_options[:link].empty?
@@ -325,12 +342,13 @@ def add_network_config(container_config, cmd_options)
       container_config['NetworkingConfig'].deep_merge!(
         'EndpointsConfig' => {
           net_name => {
-            'Links' => cmd_options[:link]
+            'Links' => cmd_options[:link].collect(&method(:shorten_source_id))
           }
         }
       )
     end
   elsif has_links
+    # Don't shorten source ids here
     host_config['Links'] = cmd_options[:link]
   end
 end
