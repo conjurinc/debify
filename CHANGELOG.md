@@ -1,3 +1,9 @@
+# 1.10.0
+
+* add `--net` support to `test` and `sandbox` subcommands
+* Use Docker::Container.start! to start containers, to avoid
+  swallowing important errors.
+
 # 1.9.1
 
 * Make sure .bundle/config in the 'main' package excludes test and development groups.

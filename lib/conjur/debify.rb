@@ -7,6 +7,9 @@ require 'base64'
 
 require 'conjur/debify/utils'
 
+require 'active_support'
+require 'active_support/core_ext'
+
 include GLI::App
 
 config_file '.debifyrc'
@@ -171,7 +174,7 @@ command "clean" do |c|
         options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
         container = Docker::Container.create options
         begin
-          container.start
+          container.start!
           delete_files.each do |file|
             puts file
 
@@ -269,7 +272,7 @@ command "package" do |c|
       container = Docker::Container.create options
       begin
         DebugMixin.debug_write "Packaging #{project_name} in container #{container.id}\n"
-        container.tap(&:start).streaming_logs(follow: true, stdout: true, stderr: true) { |stream, chunk| $stderr.puts "#{chunk}" }
+        container.tap(&:start!).streaming_logs(follow: true, stdout: true, stderr: true) { |stream, chunk| $stderr.puts "#{chunk}" }
         status = container.wait
         raise "Failed to package #{project_name}" unless status['StatusCode'] == 0
 
@@ -298,8 +301,57 @@ end
 
 def wait_for_conjur appliance_image, container
   container_command container, '/opt/conjur/evoke/bin/wait_for_conjur'
+rescue
+  $stderr.puts container.logs
+  raise
 end
 
+def network_options(cmd)
+  cmd.desc "Specify link for test container"
+  cmd.flag [ :l, :link ], :multiple => true
+  
+  cmd.desc 'Attach to the specified network'
+  cmd.flag [ :n, :net ]
+end
+
+def short_id(id)
+  if id =~ /\A[0-9a-f]{64}\z/ # 64 hex digits, docker only allows lower case letters in ids
+    $stderr.puts "Warning: found full container id, using short id instead (#{id[0..11]} for #{id})"
+    id[0..11]
+  else
+    id
+  end
+end
+
+# If the source of the link is a full container id, use the short id
+# instead. (Docker doesn't add full container ids as network aliases,
+# only short ids).
+def shorten_source_id(link)
+  src,dest = link.split(':')
+  src && dest ? "#{short_id(src)}:#{dest}" : link
+end
+
+def add_network_config(container_config, cmd_options)
+  host_config = container_config['HostConfig']
+  has_links = cmd_options[:link] && !cmd_options[:link].empty?
+  net_name = cmd_options[:net]
+  if net_name
+    host_config['NetworkMode'] = net_name
+    if has_links
+      container_config['NetworkingConfig'] ||= {}
+      container_config['NetworkingConfig'].deep_merge!(
+        'EndpointsConfig' => {
+          net_name => {
+            'Links' => cmd_options[:link].collect(&method(:shorten_source_id))
+          }
+        }
+      )
+    end
+  elsif has_links
+    # Don't shorten source ids here
+    host_config['Links'] = cmd_options[:link]
+  end
+end
 
 desc "Test a Conjur debian package in a Conjur appliance container"
 long_desc <<DESC
@@ -345,12 +397,11 @@ command "test" do |c|
   c.desc "Specify the deb version; by default, it's read from the VERSION file"
   c.flag [ :v, :version ]
 
-  c.desc "Specify link for test container"
-  c.flag [ :l, :link ], :multiple => true
-
   c.desc "Specify volume for test container"
   c.flag [ :'volumes-from' ], :multiple => true
 
+  network_options(c)
+  
   c.action do |global_options,cmd_options,args|
     raise "project-name is required" unless project_name = args.shift
     raise "test-script is required" unless test_script = args.shift
@@ -430,20 +481,26 @@ RUN touch /etc/service/conjur/down
           "CONJUR_AUTHN_API_KEY=secret",
           "CONJUR_ADMIN_PASSWORD=secret",
         ],
-        'Binds' => [
-          [ dir, "/src/#{project_name}" ].join(':')
-        ]
+        'HostConfig' => {
+          'Binds' => [
+            [ dir, "/src/#{project_name}" ].join(':')
+          ]
+        }
       }
-      options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
-      options['Links'] = cmd_options[:link] if cmd_options[:link] && !cmd_options[:link].empty?
-      options['VolumesFrom'] = cmd_options[:'volumes-from'] if cmd_options[:'volumes-from'] && !cmd_options[:'volumes-from'].empty?
+      host_config = options['HostConfig']
+      
+      host_config['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
+      host_config['VolumesFrom'] = cmd_options[:'volumes-from'] if cmd_options[:'volumes-from'] && !cmd_options[:'volumes-from'].empty?
+
+      add_network_config(options, cmd_options)
+      
       if global_options[:'local-bundle']
-        options['Binds']
+        host_config['Binds']
           .push([ vendor_dir, "/src/#{project_name}/vendor" ].join(':'))
           .push([ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':'))
       end
 
-      container = Docker::Container.create(options)
+      container = Docker::Container.create(options.tap {|o| DebugMixin.debug_write "creating container with options #{o.inspect}"})
 
       begin
         DebugMixin.debug_write "Testing #{project_name} in container #{container.id}\n"
@@ -451,7 +508,7 @@ RUN touch /etc/service/conjur/down
         spawn("docker logs -f #{container.id}", [ :out, :err ] => $stderr).tap do |pid|
           Process.detach pid
         end
-        container.start
+        container.start!
 
         # Wait for pg/main so that migrations can run
         30.times do
@@ -477,8 +534,10 @@ RUN touch /etc/service/conjur/down
         system "./#{test_script} #{container.id}"
         exit_now! "#{test_script} failed with exit code #{$?.exitstatus}", $?.exitstatus unless $?.exitstatus == 0
       ensure
-        DebugMixin.debug_write "deleting container"
-        container.delete(force: true) unless cmd_options[:keep]
+        unless cmd_options[:keep] || ENV['KEEP_CONTAINERS']
+          DebugMixin.debug_write "deleting container"
+          container.delete(force: true)
+        end
       end
     end
   end
@@ -513,8 +572,7 @@ command "sandbox" do |c|
   c.default_value false
   c.switch [ :pull ]
 
-  c.desc "Specify link for container"
-  c.flag [ :l, :link ], :multiple => true
+  network_options(c)
 
   c.desc "Specify volume for container"
   c.flag [ :'volumes-from' ], :multiple => true
@@ -530,6 +588,9 @@ command "sandbox" do |c|
   c.default_value false
   c.switch [:kill]
 
+  c.desc 'A command to run in the sandbox'
+  c.flag [ :c, :command ]
+  
   c.action do |global_options,cmd_options,args|
     raise "Received extra command-line arguments" if args.shift
 
@@ -585,8 +646,9 @@ command "sandbox" do |c|
       end
 
       host_config['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
-      host_config['Links'] = cmd_options[:link] unless cmd_options[:link].empty?
       host_config['VolumesFrom'] = cmd_options[:'volumes-from'] unless cmd_options[:'volumes-from'].empty?
+      
+      add_network_config(options, cmd_options)
 
       unless cmd_options[:port].empty?
         port_bindings = Hash.new({})
@@ -602,9 +664,9 @@ command "sandbox" do |c|
         previous.delete(:force => true) if previous
       end
 
-      container = Docker::Container.create(options)
+      container = Docker::Container.create(options.tap {|o| DebugMixin.debug_write "creating container with options #{o.inspect}"})
       $stdout.puts container.id
-      container.start
+      container.start!
 
       wait_for_conjur appliance_image, container
 
@@ -613,6 +675,9 @@ command "sandbox" do |c|
         container_command(container, 'sv', 'restart', "conjur/#{project_name}")
       end
 
+      if cmd_options[:command]
+        container_command(container, '/bin/bash', '-c', cmd_options[:command])
+      end
     end
   end
 end

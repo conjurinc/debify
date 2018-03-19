@@ -1,0 +1,11 @@
+version: "2"
+networks:
+  svcnet:
+    external:
+      name: testnet
+services:
+  db:
+    image: postgres
+    container_name: mydb
+    networks:
+      - svcnet

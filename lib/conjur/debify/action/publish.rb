@@ -80,7 +80,7 @@ module Conjur::Debify
       def publish(options)
         container = Docker::Container.create(options)
         begin
-          container.tap(&:start).streaming_logs(follow: true, stdout: true, stderr: true) { |stream, chunk| puts "#{chunk}" }
+          container.tap(&:start!).streaming_logs(follow: true, stdout: true, stderr: true) { |stream, chunk| puts "#{chunk}" }
           status = container.wait
           raise "Failed to publish package" unless status['StatusCode'] == 0
         ensure

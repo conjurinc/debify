@@ -242,6 +242,55 @@ root@7d4217655332:/src/authz# export RAILS_ENV=test
 root@7d4217655332:/src/authz# bundle exec rake db:migrate
 ```
 
+## Usage with docker-compose
+
+As of v1.10.0, both the `test` and `sandbox` subcommands support the `--net` switch. This allows you to specify a network to which the Conjur appliance container should be attached. 
+
+There are a variety of ways to make use of this feature. One
+possiblity is creating a network using `docker network create`, then
+attaching both the docker-compose services, as well as the Conjur
+appliance container created by debify, to it. 
+
+As a (somewhat contrived) example, create a new docker network:
+
+```sh-session
+$ docker network create testnet
+```
+
+Use a docker-compose file like [example/docker-compose.yml](example/docker-compose.yml)
+
+```yaml
+version: "2"
+networks:
+  svcnet:
+    external:
+      name: testnet
+services:
+  db:
+    image: postgres
+    container_name: mydb
+    networks:
+      - svcnet
+```
+
+Bring up the db service:
+
+```sh-session
+debify $ cd example
+example $ docker-compose up -d
+```
+
+Start a sandbox, see that it can resolve the hostname `mydb`:
+
+```sh-session
+
+example $ debify sandbox -t 4.9-stable --net testnet
+example $ docker exec -it example-sandbox /bin/bash
+root@7d4217655332:/src/example# getent hosts mydb
+172.19.0.2      mydb
+```
+
+
 ## Contributing
 
 1. Fork it ( https://github.com/[my-github-username]/debify/fork )
