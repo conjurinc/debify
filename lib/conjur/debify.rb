@@ -726,7 +726,7 @@ command "publish" do |c|
   end
 end
 
-desc "Auto-detect and print the repository verison"
+desc "Auto-detect and print the repository version"
 command "detect-version" do |c|
   c.desc "Set the current working directory"
   c.flag [ :d, :dir ]

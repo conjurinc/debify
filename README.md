@@ -66,7 +66,7 @@ GLOBAL OPTIONS
 COMMANDS
     clean          - Clean current working directory of non-Git-managed files
     config         - Show the given configuration
-    detect-version - Auto-detect and print the repository verison
+    detect-version - Auto-detect and print the repository version
     help           - Shows a list of commands or help for one command
     initconfig     - Initialize the config file using current global options
     package        - Build a debian package for a project
