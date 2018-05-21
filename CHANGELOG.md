@@ -1,7 +1,3 @@
-# 1.10.1
-
-* Update fpm container to use Ruby 2.4, fixes `ruby-xz` dependency
-
 # 1.10.0
 
 * add `--net` support to `test` and `sandbox` subcommands
