@@ -1,3 +1,7 @@
+# 1.10.3
+
+* Fix a bug causing duplicate files between normal and dev packages when a file name contained a space.
+
 # 1.10.2
 
 * Pin `ruby-xz` gem in fpm Dockerfile, so it works on Ruby 2.2. Upstream issue: https://github.com/jordansissel/fpm/issues/1493
