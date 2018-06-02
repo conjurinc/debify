@@ -21,13 +21,25 @@ export CONJUR_SSL_CERTIFICATE="$(< $(conjur_config cert_file))"
 
 [[ -f "$HOME/.debifyrc" ]] && rc_arg="-v $HOME/.debifyrc:/root/.debifyrc:ro"
 
-# mounting docker socket is required because subcommands launch
-# containers
+: ${DEBIFY_ENVFILE=debify.env}
+[[ -f $DEBIFY_ENVFILE ]] &&  envfile_arg="--env-file $DEBIFY_ENVFILE"
+
+# Mounting docker socket is required because subcommands launch
+# containers.
+#
+# The environment variables can't go into an env-file, because docker
+# doesn't handle env-file variables the same way it handles
+# command-line variables. In particular, when a variable in an
+# env-file is unset in the calling enviroment, it gets set in the
+# container without a value. When such a variable is mentioned on the
+# command line, it doesn't get set in the container.
 tty=$(tty -s && echo "-t" || true)
 docker run -i $tty --rm \
-  -e GLI_DEBUG -e DEBUG -e CONJUR_APPLIANCE_URL -e CONJUR_SSL_CERTIFICATE \
-  -e ARTIFACTORY_USER -e ARTIFACTORY_PASSWORD \
+  -e GLI_DEBUG -e DEBUG \
+  -e CONJUR_APPLIANCE_URL -e CONJUR_SSL_CERTIFICATE \
   -e GIT_BRANCH -e BRANCH_NAME \
+  -e ARTIFACTORY_USER -e ARTIFACTORY_PASSWORD \
+  ${envfile_arg} \
   -v $PWD:$PWD -w $PWD \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v ${netrc}:/root/.netrc:ro \

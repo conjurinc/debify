@@ -1,3 +1,10 @@
+# 1.11.0
+
+* Use a Docker env-file (docker.env, by default) to pass environment
+  variables to the debify container.
+  
+* Make sure `--env` variables get passed along to the Conjur container when testing, too.
+
 # 1.10.3
 
 * Fix a bug causing duplicate files between normal and dev packages when a file name contained a space.

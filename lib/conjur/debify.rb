@@ -480,7 +480,7 @@ RUN touch /etc/service/conjur/down
           "CONJUR_ENV=appliance",
           "CONJUR_AUTHN_API_KEY=secret",
           "CONJUR_ADMIN_PASSWORD=secret",
-        ],
+        ] + global_options[:env],
         'HostConfig' => {
           'Binds' => [
             [ dir, "/src/#{project_name}" ].join(':')
