@@ -11,13 +11,15 @@ fi
 
 : ${CONJURRC=/etc/conjur.conf}
 
-conjur_config() {
-  local name=$1; shift
-  grep $name $CONJURRC | awk '{print $2}' | tr -d '"'
-}
-
-export CONJUR_APPLIANCE_URL=$(conjur_config appliance_url)
-export CONJUR_SSL_CERTIFICATE="$(< $(conjur_config cert_file))"
+if [[ -f $CONJURRC ]]; then
+  conjur_config() {
+    local name=$1; shift
+    grep $name $CONJURRC | awk '{print $2}' | tr -d '"'
+  }
+  
+  export CONJUR_APPLIANCE_URL=$(conjur_config appliance_url)
+  export CONJUR_SSL_CERTIFICATE="$(< $(conjur_config cert_file))"
+fi
 
 [[ -f "$HOME/.debifyrc" ]] && rc_arg="-v $HOME/.debifyrc:/root/.debifyrc:ro"
 
