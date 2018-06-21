@@ -1,4 +1,4 @@
-FROM ruby:2.2
+FROM ruby:2.3
 
 ### DockerInDocker support is take from
 ### https://github.com/jpetazzo/dind/blob/master/Dockerfile . I
