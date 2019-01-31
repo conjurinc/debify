@@ -38,10 +38,6 @@ pipeline {
     }
 
     stage('Push Docker image') {
-      when {
-        branch 'master'
-      }
-
       steps {
         sh './tag-image.sh'
         sh './push-image.sh'

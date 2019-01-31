@@ -1,0 +1,23 @@
+#!/bin/bash -e
+
+: ${BRANCH_NAME:=$(git symbolic-ref --short HEAD)}
+
+show_master_tags() {
+  IFS=. read MAJOR MINOR PATCH <VERSION
+  TAG="$MAJOR.$MINOR.$PATCH"
+  echo "latest $TAG $MAJOR.$MINOR"
+}
+
+show_branch_tags() {
+  # tail and tr, to remove the grottiness from the detect-version
+  # output
+  local version="$(DEBIFY_IMAGE=debify:$(<VERSION) ./docker-debify detect-version | tail -1 | tr -d '\r')"
+  
+  echo "$BRANCH_NAME $version"
+}
+
+if [[ "$BRANCH_NAME" == "master" ]]; then
+  show_master_tags
+else
+  show_branch_tags
+fi
