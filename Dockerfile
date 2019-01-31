@@ -1,4 +1,4 @@
-FROM ruby:2.2
+FROM ruby:2.6
 
 ### DockerInDocker support is take from
 ### https://github.com/jpetazzo/dind/blob/master/Dockerfile . I
@@ -38,5 +38,7 @@ RUN gem install -N conjur-debify-${VERSION}.gem
 
 ARG CONJUR_APPLIANCE_URL
 ENV CONJUR_APPLIANCE_URL ${CONJUR_APPLIANCE_URL:-https://conjur-master-v2.itp.conjur.net/api}
+ENV CONJUR_ACCOUNT ${CONJUR_ACCOUNT:-conjur}
+ENV CONJUR_VERSION ${CONJUR_VERSION:-4}
 
 ENTRYPOINT ["/debify/distrib/entrypoint.sh"]

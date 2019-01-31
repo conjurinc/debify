@@ -71,10 +71,10 @@ module Conjur::Debify
         Conjur::Config.apply
         conjur = Conjur::Authn.connect nil, noask: true
 
-        username_var = 'ci/artifactory/users/jenkins/username'
-        password_var = 'ci/artifactory/users/jenkins/password'
-
-        [conjur.variable(username_var).value, conjur.variable(password_var).value]
+        account = Conjur.configuration.account
+        username_var = [account, "variable", "ci/artifactory/users/jenkins/username"].join(':')
+        password_var = [account, "variable", 'ci/artifactory/users/jenkins/password'].join(':')
+        [conjur.resource(username_var).value, conjur.resource(password_var).value]
       end
 
       def publish(options)
