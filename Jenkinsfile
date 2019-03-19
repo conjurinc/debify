@@ -9,6 +9,10 @@ pipeline {
     skipDefaultCheckout()
   }
 
+  triggers {
+    cron(getDailyCronString())
+  }
+
   stages {
     stage('Checkout') {
       steps {
@@ -49,7 +53,7 @@ pipeline {
       when {
         allOf {
           branch 'master'
-          expression {
+          /* expression {
             boolean publish = false
 
             try {
@@ -62,7 +66,7 @@ pipeline {
             }
 
             return publish
-          }
+          }*/
         }
       }
 
