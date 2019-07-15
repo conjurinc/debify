@@ -1,4 +1,4 @@
-FROM ruby:2.6
+FROM ruby:2.6-stretch
 
 ### DockerInDocker support is take from
 ### https://github.com/jpetazzo/dind/blob/master/Dockerfile . I
