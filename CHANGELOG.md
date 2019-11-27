@@ -1,3 +1,13 @@
+# 1.11.1
+
+* Update Conjur Dockerfile from Ubuntu 14.04 --> 18.04 as 14.04 repos
+  are now behind a [pay wall](https://ubuntu.com/blog/ubuntu-14-04-esm-support)
+  Ruby is installed from `ppa:brightbox/ruby-ng` however that PPA
+  [doesn't currently supply ruby2.2 for Ubuntu 18.04](https://launchpad.net/~brightbox/+archive/ubuntu/ruby-ng?field.series_filter=bionic). [The documentation](https://www.brightbox.com/docs/ruby/ubuntu/)
+  suggests this combination is available, so it may be a temporary problem.
+  To work around the problem, ruby is bumped from 2.2 to 2.3 as 2.3 is the oldest
+  version available for Ubuntu 18.04.
+
 # 1.11.0
 
 * Use a Docker env-file (docker.env, by default) to pass environment
