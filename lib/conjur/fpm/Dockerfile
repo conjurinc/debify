@@ -7,7 +7,7 @@ RUN apt-get update -y && \
     apt-get update -y && \
     apt-get install -y build-essential git libpq5 libpq-dev ruby2.6 ruby2.6-dev libffi-dev
 
-RUN gem install bundler fpm --no-document
+RUN gem install --no-document bundler:2.0.2 fpm
 
 ENV GEM_HOME /usr/local/bundle
 ENV BUNDLE_PATH="$GEM_HOME" \
