@@ -1,5 +1,6 @@
-# 1.11.1
+# 1.11.2
 
+* Upgraded to use Ruby 2.6 and latest version of FPM
 * Update Conjur Dockerfile from Ubuntu 14.04 --> 18.04 as 14.04 repos
   are now behind a [pay wall](https://ubuntu.com/blog/ubuntu-14-04-esm-support)
   Ruby is installed from `ppa:brightbox/ruby-ng` however that PPA
@@ -8,11 +9,14 @@
   To work around the problem, ruby is bumped from 2.2 to 2.3 as 2.3 is the oldest
   version available for Ubuntu 18.04.
 
+# 1.11.1
+* Upgrade `docker-debify` to use Ruby 2.6.
+
 # 1.11.0
 
 * Use a Docker env-file (docker.env, by default) to pass environment
   variables to the debify container.
-  
+
 * Make sure `--env` variables get passed along to the Conjur container when testing, too.
 
 # 1.10.3
