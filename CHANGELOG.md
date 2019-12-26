@@ -1,5 +1,7 @@
 # 1.11.3
 
+* Reverted to `bundler` v1. `bundler` v2 was creating incompatible paths for downstream
+  packages.
 * Made FPM Ruby version use `ruby2.5` instead of `ruby2.6` since that is what
   our appliance image uses otherwise the gems bundled in the packages are unusable.
 

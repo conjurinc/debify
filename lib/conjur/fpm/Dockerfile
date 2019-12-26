@@ -10,7 +10,7 @@ RUN apt-get update -y && \
                        ruby2.5 \
                        ruby2.5-dev
 
-RUN gem install --no-document bundler:2.0.2 \
+RUN gem install --no-document bundler:1.17.3 \
                               fpm
 
 ENV GEM_HOME /usr/local/bundle
