@@ -1,3 +1,10 @@
+# 1.11.3
+
+* Reverted to `bundler` v1. `bundler` v2 was creating incompatible paths for downstream
+  packages.
+* Made FPM Ruby version use `ruby2.5` instead of `ruby2.6` since that is what
+  our appliance image uses otherwise the gems bundled in the packages are unusable.
+
 # 1.11.2
 
 * Upgraded to use Ruby 2.6 and latest version of FPM
@@ -10,6 +17,7 @@
   version available for Ubuntu 18.04.
 
 # 1.11.1
+
 * Upgrade `docker-debify` to use Ruby 2.6.
 
 # 1.11.0
