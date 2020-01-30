@@ -1,3 +1,7 @@
+# 1.11.4
+
+* Updated sandbox password to match Conjur password complexity requirements.
+
 # 1.11.3
 
 * Reverted to `bundler` v1. `bundler` v2 was creating incompatible paths for downstream
