@@ -478,8 +478,8 @@ RUN touch /etc/service/conjur/down
         'Env' => [
           "CONJUR_AUTHN_LOGIN=admin",
           "CONJUR_ENV=appliance",
-          "CONJUR_AUTHN_API_KEY=secret",
-          "CONJUR_ADMIN_PASSWORD=secret",
+          "CONJUR_AUTHN_API_KEY=SEcret12!!!!",
+          "CONJUR_ADMIN_PASSWORD=SEcret12!!!!",
         ] + global_options[:env],
         'HostConfig' => {
           'Binds' => [
@@ -628,8 +628,8 @@ command "sandbox" do |c|
         'Env' => [
           "CONJUR_AUTHN_LOGIN=admin",
           "CONJUR_ENV=appliance",
-          "CONJUR_AUTHN_API_KEY=secret",
-          "CONJUR_ADMIN_PASSWORD=secret",
+          "CONJUR_AUTHN_API_KEY=SEcret12!!!!",
+          "CONJUR_ADMIN_PASSWORD=SEcret12!!!!",
         ] + global_options[:env]
       }
 
