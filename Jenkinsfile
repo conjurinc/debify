@@ -32,6 +32,15 @@ pipeline {
       }
     }
 
+    stage('Scan Docker image') {
+      steps{
+        script {
+          VERSION = sh(returnStdout: true, script: 'cat VERSION')
+        }
+        scanAndReport("debify:${VERSION}", "NONE")
+      }
+    }
+
     stage('Run feature tests') {
       steps {
         sh './test.sh'
