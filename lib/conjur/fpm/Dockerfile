@@ -8,7 +8,8 @@ RUN apt-get update -y && \
                        libpq5 \
                        libpq-dev \
                        ruby2.5 \
-                       ruby2.5-dev
+                       ruby2.5-dev \
+                       build-essential patch ruby-dev zlib1g-dev liblzma-dev
 
 RUN gem install --no-document bundler:1.17.3 \
                               fpm
