@@ -33,11 +33,19 @@ pipeline {
     }
 
     stage('Scan Docker image') {
-      steps{
-        script {
-          VERSION = sh(returnStdout: true, script: 'cat VERSION')
+      parallel {
+        stage('Scan Docker image for fixable issues') {
+          steps{
+            script {
+              VERSION = sh(returnStdout: true, script: 'cat VERSION')
+            }
+            scanAndReport("debify:${VERSION}", "CRITICAL", false)
+          }
         }
-        scanAndReport("debify:${VERSION}", "NONE")
+        // No all report generated because it currently adds 10-12 minutes of
+        // build time just to write the trivy report. It'll be added once we've
+        // cleaned up and/or ignored enough issues to reduce the impact
+        // on build time.
       }
     }
 
