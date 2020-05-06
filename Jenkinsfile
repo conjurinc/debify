@@ -39,7 +39,7 @@ pipeline {
             script {
               VERSION = sh(returnStdout: true, script: 'cat VERSION')
             }
-            scanAndReport("debify:${VERSION}", "CRITICAL", false)
+            scanAndReport("debify:${VERSION}", "HIGH", false)
           }
         }
         // No all report generated because it currently adds 10-12 minutes of
