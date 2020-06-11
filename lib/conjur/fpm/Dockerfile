@@ -2,6 +2,7 @@
 FROM ubuntu:18.04
 
 RUN apt-get update -y && \
+    apt-get dist-upgrade -y && \
     apt-get install -y build-essential \
                        git \
                        libffi-dev \
