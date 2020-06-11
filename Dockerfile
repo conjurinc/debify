@@ -7,7 +7,9 @@ FROM ruby:2.6-stretch
 ### docker:dind image much more complicated and didn't lend itself to
 ### also running ruby.
 
-RUN apt-get update -qq && apt-get install -qqy \
+RUN apt-get update -qq && \
+    apt-get dist-upgrade -qqy && \
+    apt-get install -qqy \
     apt-transport-https \
     ca-certificates \
     curl \
