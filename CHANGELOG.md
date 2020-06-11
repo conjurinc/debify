@@ -1,3 +1,8 @@
+# 1.11.5
+
+### Changed
+* Updated FPM and Test images to use a base image with FIPS-compliant Ruby and OpenSSL.
+
 # 1.11.4
 
 * Updated sandbox password to match Conjur password complexity requirements.
