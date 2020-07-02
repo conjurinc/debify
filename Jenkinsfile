@@ -42,10 +42,14 @@ pipeline {
             scanAndReport("debify:${VERSION}", "HIGH", false)
           }
         }
-        // No all report generated because it currently adds 10-12 minutes of
-        // build time just to write the trivy report. It'll be added once we've
-        // cleaned up and/or ignored enough issues to reduce the impact
-        // on build time.
+        stage('Scan Docker image for all issues') {
+          steps{
+            script {
+              VERSION = sh(returnStdout: true, script: 'cat VERSION')
+            }
+            scanAndReport("debify:${VERSION}", "NONE", true)
+          }
+        }
       }
     }
 
