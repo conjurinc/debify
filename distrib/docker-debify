@@ -39,10 +39,12 @@ docker run -i $tty --rm \
   -e CONJUR_APPLIANCE_URL -e CONJUR_SSL_CERTIFICATE \
   -e GIT_BRANCH -e BRANCH_NAME \
   -e ARTIFACTORY_USER -e ARTIFACTORY_PASSWORD \
+  -e HOME \
   ${envfile_arg} \
-  -v $PWD:$PWD -w $PWD \
+  -v "$PWD:$PWD" -w "$PWD" \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v ${netrc}:/root/.netrc:ro \
+  -v "${HOME}:${HOME}" \
+  -v "${netrc}:${HOME}/.netrc:ro" \
   ${rc_arg} \
   ${DEBIFY_ENTRYPOINT+--entrypoint $DEBIFY_ENTRYPOINT} \
   ${DEBIFY_IMAGE-registry.tld/conjurinc/debify:@@DEBIFY_VERSION@@} "$@"
