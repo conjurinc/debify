@@ -66,7 +66,6 @@ pipeline {
     }
 
     stage('Publish to RubyGems') {
-      agent { label 'releaser-v2' }
       when {
         allOf {
           branch 'master'
