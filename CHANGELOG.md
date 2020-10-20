@@ -4,6 +4,10 @@
 - Debify now packages and publishes an RPM file, alongside a debian file.
   [conjurinc/debify#49](https://github.com/conjurinc/debify/pull/49)
 
+### Fixed
+- Bug causing `all` files in the git repo to be added to the debian file.
+  [conjurinc/debify#50](https://github.com/conjurinc/debify/pull/50)
+
 # 1.11.5
 
 ### Changed
