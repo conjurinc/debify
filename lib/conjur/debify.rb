@@ -196,6 +196,17 @@ command "clean" do |c|
   end
 end
 
+def copy_packages_from_container(container, package_name, dev_package_name)
+  Conjur::Debify::Utils.copy_from_container container, "/src/#{package_name}"
+  puts "#{package_name}"
+  begin
+    Conjur::Debify::Utils.copy_from_container container, "/dev-pkg/#{dev_package_name}"
+    puts "#{dev_package_name}"
+  rescue Docker::Error::NotFoundError
+    warn "#{dev_package_name} not found. The package might not have any development dependencies."
+  end
+end
+
 desc "Build a debian package for a project"
 long_desc <<DESC
 The package is built using fpm (https://github.com/jordansissel/fpm).
@@ -276,16 +287,21 @@ command "package" do |c|
         status = container.wait
         raise "Failed to package #{project_name}" unless status['StatusCode'] == 0
 
-        pkg = "conjur-#{project_name}_#{version}_amd64.deb"
-        dev_pkg = "conjur-#{project_name}-dev_#{version}_amd64.deb"
-        Conjur::Debify::Utils.copy_from_container container, "/src/#{pkg}"
-        puts "#{pkg}"
-        begin
-          Conjur::Debify::Utils.copy_from_container container, "/dev-pkg/#{dev_pkg}"
-          puts "#{dev_pkg}"
-        rescue Docker::Error::NotFoundError
-          warn "#{dev_pkg} not found. The package might not have any development dependencies."
-        end
+        # Copy deb packages
+        copy_packages_from_container(
+          container,
+          "conjur-#{project_name}_#{version}_amd64.deb",
+          "conjur-#{project_name}-dev_#{version}_amd64.deb"
+        )
+
+        # Copy rpm packages
+        # The rpm builder replaces dashes with underscores in the version
+        rpm_version = version.tr('-', '_')
+        copy_packages_from_container(
+          container,
+          "conjur-#{project_name}-#{rpm_version}-1.x86_64.rpm",
+          "conjur-#{project_name}-dev-#{rpm_version}-1.x86_64.rpm"
+        )
       ensure
         container.delete(force: true)
       end
@@ -309,7 +325,7 @@ end
 def network_options(cmd)
   cmd.desc "Specify link for test container"
   cmd.flag [ :l, :link ], :multiple => true
-  
+
   cmd.desc 'Attach to the specified network'
   cmd.flag [ :n, :net ]
 end
@@ -401,7 +417,7 @@ command "test" do |c|
   c.flag [ :'volumes-from' ], :multiple => true
 
   network_options(c)
-  
+
   c.action do |global_options,cmd_options,args|
     raise "project-name is required" unless project_name = args.shift
     raise "test-script is required" unless test_script = args.shift
@@ -488,12 +504,12 @@ RUN touch /etc/service/conjur/down
         }
       }
       host_config = options['HostConfig']
-      
+
       host_config['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
       host_config['VolumesFrom'] = cmd_options[:'volumes-from'] if cmd_options[:'volumes-from'] && !cmd_options[:'volumes-from'].empty?
 
       add_network_config(options, cmd_options)
-      
+
       if global_options[:'local-bundle']
         host_config['Binds']
           .push([ vendor_dir, "/src/#{project_name}/vendor" ].join(':'))
@@ -590,7 +606,7 @@ command "sandbox" do |c|
 
   c.desc 'A command to run in the sandbox'
   c.flag [ :c, :command ]
-  
+
   c.action do |global_options,cmd_options,args|
     raise "Received extra command-line arguments" if args.shift
 
@@ -647,7 +663,7 @@ command "sandbox" do |c|
 
       host_config['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
       host_config['VolumesFrom'] = cmd_options[:'volumes-from'] unless cmd_options[:'volumes-from'].empty?
-      
+
       add_network_config(options, cmd_options)
 
       unless cmd_options[:port].empty?

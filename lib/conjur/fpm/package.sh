@@ -16,11 +16,7 @@ if [ -z "$version" ]; then
 	exit 1
 fi
 
-package_name=conjur-"$project_name"_"$version"_amd64.deb
-dev_package_name=conjur-"$project_name"-dev_"$version"_amd64.deb
-
 # Build dev package first
-echo Building $dev_package_name
 prefix=/src/opt/conjur/project
 cp -al $prefix /dev-pkg
 cd $prefix
@@ -34,20 +30,28 @@ bundle_clean
 if [ `ls | wc -l` -eq 0 ]; then
   echo No dev dependencies, skipping dev package
 else
-  fpm -s dir -t deb -n conjur-$project_name-dev -v $version -C . \
+  for file_type in deb rpm
+  do
+    echo "Building conjur-$project_name-dev $file_type package"
+
+    fpm \
+    -s dir \
+    -t $file_type \
+    -n conjur-$project_name-dev \
+    -v $version \
+    -C . \
     --maintainer "Conjur Inc." \
     --vendor "Conjur Inc." \
     --license "Proprietary" \
     --url "https://www.conjur.net" \
     --deb-no-default-config-files \
-    --deb-user conjur \
-    --deb-group conjur \
+    --$file_type-user conjur \
+    --$file_type-group conjur \
     --depends "conjur-$project_name = $version" \
     --prefix /opt/conjur/$project_name \
     --description "Conjur $project_name service - development files"
+  done
 fi
-
-echo Building $package_name
 
 mv /src/opt/conjur/project /src/opt/conjur/$project_name
 
@@ -63,16 +67,26 @@ mkdir -p opt/conjur/etc
 
 [ -d opt/conjur/"$project_name"/distrib ] && mv opt/conjur/"$project_name"/distrib /
 
-fpm -s dir -t deb -n conjur-$project_name -v $version -C . \
+for file_type in deb rpm
+do
+  echo "Building conjur-$project_name-dev $file_type package"
+
+  fpm \
+  -s dir \
+  -t $file_type \
+  -n conjur-$project_name \
+  -v $version \
+  -C . \
 	--maintainer "Conjur Inc." \
 	--vendor "Conjur Inc." \
 	--license "Proprietary" \
 	--url "https://www.conjur.net" \
-	--deb-no-default-config-files \
 	--config-files opt/conjur/etc \
-	--deb-user conjur \
-	--deb-group conjur \
+	--deb-no-default-config-files \
+	--$file_type-user conjur \
+	--$file_type-group conjur \
 	--description "Conjur $project_name service" \
 	"$@"
+done
 
-ls -al *.deb
+ls -al *.{deb,rpm}

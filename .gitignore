@@ -16,5 +16,6 @@ features/reports
 results.html
 mkmf.log
 *.deb
+*.rpm
 *.gem
 docker-debify
