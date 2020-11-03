@@ -31,8 +31,8 @@ describe Conjur::Debify::Action::Publish do
     end
     
     it 'runs' do
-      expect(action).to receive(:publish)
-      
+      expect(action).to receive(:publish).twice
+
       action.run
     end
     
@@ -42,8 +42,8 @@ describe Conjur::Debify::Action::Publish do
 
     it 'runs' do
       expect(action).to receive(:fetch_art_creds)
-      expect(action).to receive(:publish)
-      
+      expect(action).to receive(:publish).twice
+
       action.run
     end
   end

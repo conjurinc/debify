@@ -732,6 +732,10 @@ command "publish" do |c|
   c.default_value "debian-private"
   c.flag [ :r, :repo]
 
+  c.desc "Artifactory RPM repo to publish package to"
+  c.default_value "redhat-private"
+  c.flag ['rpm-repo']
+
   c.action do |global_options,cmd_options,args|
     require 'conjur/debify/action/publish'
     raise "distribution is required" unless distribution = args.shift
