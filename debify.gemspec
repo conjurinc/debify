@@ -6,8 +6,8 @@ require 'conjur/debify/version'
 Gem::Specification.new do |spec|
   spec.name          = "conjur-debify"
   spec.version       = Conjur::Debify::VERSION
-  spec.authors       = ["Kevin Gilpin"]
-  spec.email         = ["kgilpin@conjur.net"]
+  spec.authors       = ["CyberArk Software, Inc."]
+  spec.email         = ["conj_maintainers@cyberark.com"]
   spec.summary       = %q{Utility commands to build and package Conjur services as Debian packages}
   spec.homepage      = "https://github.com/conjurinc/debify"
   spec.license       = "MIT"

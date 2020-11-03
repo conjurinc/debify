@@ -40,10 +40,10 @@ else
     -n conjur-$project_name-dev \
     -v $version \
     -C . \
-    --maintainer "Conjur Inc." \
-    --vendor "Conjur Inc." \
+    --maintainer "CyberArk Software, Inc." \
+    --vendor "CyberArk Software, Inc." \
     --license "Proprietary" \
-    --url "https://www.conjur.net" \
+    --url "https://www.cyberark.com" \
     --deb-no-default-config-files \
     --$file_type-user conjur \
     --$file_type-group conjur \
@@ -77,10 +77,10 @@ do
   -n conjur-$project_name \
   -v $version \
   -C . \
-	--maintainer "Conjur Inc." \
-	--vendor "Conjur Inc." \
+	--maintainer "CyberArk Software, Inc." \
+	--vendor "CyberArk Software, Inc." \
 	--license "Proprietary" \
-	--url "https://www.conjur.net" \
+	--url "https://www.cyberark.com" \
 	--config-files opt/conjur/etc \
 	--deb-no-default-config-files \
 	--$file_type-user conjur \
