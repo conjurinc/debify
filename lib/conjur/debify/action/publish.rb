@@ -25,14 +25,12 @@ module Conjur::Debify
 
         Dir.chdir dir do
           version = cmd_options[:version] || detect_version
-          component = cmd_options[:component] || detect_component
-          package_name = "conjur-#{project_name}_#{version}_amd64.deb"
 
           publish_image = create_image
           DebugMixin.debug_write "Built base publish image '#{publish_image.id}'\n"
 
           art_url = cmd_options[:url]
-          art_repo = cmd_options[:repo]
+          deb_art_repo = cmd_options[:repo]
 
           art_user = ENV['ARTIFACTORY_USER']
           art_password = ENV['ARTIFACTORY_PASSWORD']
@@ -40,23 +38,35 @@ module Conjur::Debify
             art_user, art_password = fetch_art_creds
           end
 
-          options = {
-            'Image' => publish_image.id,
-            'Cmd' => [
-              "jfrog", "rt", "upload",
-              "--url", art_url,
-              "--user", art_user,
-              "--password", art_password,
-              "--deb", "#{distribution}/#{component}/amd64",
-              package_name, "#{art_repo}/"
-            ],
-            'Binds' => [
-              [ dir, "/src" ].join(':')
-            ]
-          }
-          options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
+          # Publish deb package
+          component = cmd_options[:component] || detect_component
+          deb_info = "#{distribution}/#{component}/amd64"
+          package_name = "conjur-#{project_name}_#{version}_amd64.deb"
+          publish_package(
+            publish_image: publish_image,
+            art_url: art_url,
+            art_user: art_user,
+            art_password: art_password,
+            art_repo: deb_art_repo,
+            package_name: package_name,
+            dir: dir,
+            deb_info: deb_info
+          )
 
-          publish(options)
+          # Publish RPM package
+          # The rpm builder replaces dashes with underscores in the version
+          rpm_version = version.tr('-', '_')
+          package_name = "conjur-#{project_name}-#{rpm_version}-1.x86_64.rpm"
+          rpm_art_repo = cmd_options['rpm-repo']
+          publish_package(
+            publish_image: publish_image,
+            art_url: art_url,
+            art_user: art_user,
+            art_password: art_password,
+            art_repo: rpm_art_repo,
+            package_name: package_name,
+            dir: dir
+          )
         end
       end
 
@@ -75,6 +85,39 @@ module Conjur::Debify
         username_var = [account, "variable", "ci/artifactory/users/jenkins/username"].join(':')
         password_var = [account, "variable", 'ci/artifactory/users/jenkins/password'].join(':')
         [conjur.resource(username_var).value, conjur.resource(password_var).value]
+      end
+
+      def publish_package(
+        publish_image:,
+        art_url:,
+        art_user:,
+        art_password:,
+        art_repo:,
+        package_name:,
+        dir:,
+        deb_info: nil
+      )
+
+        cmd_args = [
+          "jfrog", "rt", "upload",
+          "--url", art_url,
+          "--user", art_user,
+          "--password", art_password,
+        ]
+
+        cmd_args += ["--deb", deb_info] if deb_info
+        cmd_args += [package_name, "#{art_repo}/"]
+
+        options = {
+          'Image' => publish_image.id,
+          'Cmd' => cmd_args,
+          'Binds' => [
+            [ dir, "/src" ].join(':')
+          ]
+        }
+        options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
+
+        publish(options)
       end
 
       def publish(options)

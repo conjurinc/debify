@@ -5,7 +5,8 @@ RUN apt-get update -y && \
     apt-get dist-upgrade -y && \
     apt-get install -y build-essential \
                        git \
-                       libffi-dev 
+                       libffi-dev \
+                       rpm
 
 RUN gem install --no-document bundler:1.17.3 \
                               fpm
