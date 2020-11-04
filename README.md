@@ -1,5 +1,10 @@
 # Debify
 
+Debify is a tool used for building and testing DAP appliance packages.
+It is mainly used to package and publish debian packages that are consumed into the
+appliance image in its build stage. However, it also packages and publishes an
+RPM package whenever it does so for a debian.
+
 ## Installation
 
 There are two different ways of installing debify: as a gem, or as a Docker image.
