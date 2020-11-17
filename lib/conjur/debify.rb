@@ -4,6 +4,7 @@ require 'fileutils'
 require 'gli'
 require 'json'
 require 'base64'
+require 'tmpdir'
 
 require 'conjur/debify/utils'
 
@@ -255,22 +256,32 @@ command "package" do |c|
     fpm_image = Docker::Image.build_from_dir File.expand_path('fpm', File.dirname(__FILE__)), tag: "debify-fpm", &DebugMixin::DOCKER
     DebugMixin.debug_write "Built base fpm image '#{fpm_image.id}'\n"
     dir = File.expand_path(dir)
+
     Dir.chdir dir do
       version = cmd_options[:version] || detect_version
-      dockerfile_path = cmd_options[:dockerfile] || File.expand_path("debify/Dockerfile.fpm", pwd)
-      dockerfile = File.read(dockerfile_path)
 
-      output = StringIO.new
-      Gem::Package::TarWriter.new(output) do |tar|
-        git_files.each do |fname|
-          stat = File.stat(fname)
-          tar.add_file(fname, stat.mode) { |tar_file| tar_file.write(File.read(fname)) }
-        end
-        tar.add_file('Dockerfile', 0640) { |tar_file| tar_file.write dockerfile.gsub("@@image@@", fpm_image.id) }
+      # move git files and Dockerfile to temp dir to make deb from
+      # we do this to avoid adding "non-git" files
+      # that aren't mentioned in the dockerignore to the deb
+      temp_dir = Dir.mktmpdir
+      DebugMixin.debug_write "Copying git files to tmp dir '#{temp_dir}'\n"
+      git_files.each do |fname|
+        original_file = File.join(dir, fname)
+        destination_path = File.join(temp_dir, fname)
+        FileUtils.mkdir_p(File.dirname(destination_path))
+        FileUtils.cp(original_file, destination_path)
       end
-      output.rewind
+      # rename specified dockerfile to 'Dockerfile' during copy, incase name is different
+      dockerfile_path = cmd_options[:dockerfile] || File.expand_path("debify/Dockerfile.fpm", pwd)
+      temp_dockerfile = File.join(temp_dir, "Dockerfile")
+      
+      # change image variable in specified Dockerfile
+      dockerfile = File.read(dockerfile_path)
+      replace_image = dockerfile.gsub("@@image@@", fpm_image.id)
+      File.open(temp_dockerfile, "w") {|file| file.puts replace_image}
 
-      image = Docker::Image.build_from_tar output, &DebugMixin::DOCKER
+      # build image from project being debified dir
+      image = Docker::Image.build_from_dir temp_dir, &DebugMixin::DOCKER
 
       DebugMixin.debug_write "Built fpm image '#{image.id}' for project #{project_name}\n"
 
