@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+# 1.12.0
+
 ### Added
 - Debify now packages and publishes an RPM file, alongside a debian file.
   [conjurinc/debify#49](https://github.com/conjurinc/debify/pull/49)
