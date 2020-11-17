@@ -1,8 +1,14 @@
 ## [Unreleased]
 
+# 1.12.0
+
 ### Added
 - Debify now packages and publishes an RPM file, alongside a debian file.
   [conjurinc/debify#49](https://github.com/conjurinc/debify/pull/49)
+- `debify package` now offers an `--additional-files` flag to provide a comma
+  separated list of files to include in the FPM build that are not provided
+  automatically by `git ls-files`.
+  [conjurinc/debify#52](https://github.com/conjurinc/debify/pull/52)
 
 ### Fixed
 - Bug causing `all` files in the git repo to be added to the debian file.

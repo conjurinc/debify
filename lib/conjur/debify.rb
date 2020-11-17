@@ -240,6 +240,9 @@ command "package" do |c|
   c.desc "Specify a custom Dockerfile.fpm"
   c.flag [ :dockerfile]
 
+  c.desc "Specify files to add to the FPM image that are not included from the git repo"
+  c.flag [ :'additional-files' ]
+
   c.action do |global_options,cmd_options,args|
     raise "project-name is required" unless project_name = args.shift
 
@@ -253,6 +256,11 @@ command "package" do |c|
     dir = cmd_options[:dir] || '.'
     pwd = File.dirname(__FILE__)
 
+    additional_files = []
+    if cmd_options[:'additional-files']
+      additional_files = cmd_options[:'additional-files'].split(',').map(&:strip)
+    end
+
     fpm_image = Docker::Image.build_from_dir File.expand_path('fpm', File.dirname(__FILE__)), tag: "debify-fpm", &DebugMixin::DOCKER
     DebugMixin.debug_write "Built base fpm image '#{fpm_image.id}'\n"
     dir = File.expand_path(dir)
@@ -265,12 +273,13 @@ command "package" do |c|
       # that aren't mentioned in the dockerignore to the deb
       temp_dir = Dir.mktmpdir
       DebugMixin.debug_write "Copying git files to tmp dir '#{temp_dir}'\n"
-      git_files.each do |fname|
+      (git_files + additional_files).each do |fname|
         original_file = File.join(dir, fname)
         destination_path = File.join(temp_dir, fname)
         FileUtils.mkdir_p(File.dirname(destination_path))
         FileUtils.cp(original_file, destination_path)
       end
+      
       # rename specified dockerfile to 'Dockerfile' during copy, incase name is different
       dockerfile_path = cmd_options[:dockerfile] || File.expand_path("debify/Dockerfile.fpm", pwd)
       temp_dockerfile = File.join(temp_dir, "Dockerfile")
