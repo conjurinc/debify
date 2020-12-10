@@ -234,6 +234,9 @@ command "package" do |c|
   c.desc "Set the current working directory"
   c.flag [ :d, "dir" ]
 
+  c.desc "Set the output file type of the fpm command (e.g rpm)"
+  c.flag [ :o, :output ]
+
   c.desc "Specify the deb version; by default, it's read from the VERSION file"
   c.flag [ :v, :version ]
 
@@ -294,8 +297,14 @@ command "package" do |c|
 
       DebugMixin.debug_write "Built fpm image '#{image.id}' for project #{project_name}\n"
 
+      container_cmd_options = [ project_name, version ]
+
+      # Set the output file type if present
+      output = cmd_options[:output]
+      container_cmd_options << output if output
+
       options = {
-        'Cmd'   => [ project_name, version ] + fpm_args,
+        'Cmd'   => container_cmd_options + fpm_args,
         'Image' => image.id
       }
       options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
