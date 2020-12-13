@@ -6,8 +6,6 @@ project_name=$1
 shift
 version=$1
 shift
-file_type=${1-deb}
-shift
 
 if [ -z "$project_name" ]; then
 	echo Project name argument is required
@@ -32,7 +30,9 @@ bundle_clean
 if [ `ls | wc -l` -eq 0 ]; then
   echo No dev dependencies, skipping dev package
 else
-  echo "Building conjur-$project_name-dev $file_type package"
+  for file_type in deb rpm
+  do
+    echo "Building conjur-$project_name-dev $file_type package"
 
     fpm \
     -s dir \
@@ -50,6 +50,7 @@ else
     --depends "conjur-$project_name = $version" \
     --prefix /opt/conjur/$project_name \
     --description "Conjur $project_name service - development files"
+  done
 fi
 
 mv /src/opt/conjur/project /src/opt/conjur/$project_name
@@ -66,23 +67,26 @@ mkdir -p opt/conjur/etc
 
 [ -d opt/conjur/"$project_name"/distrib ] && mv opt/conjur/"$project_name"/distrib /
 
-echo "Building conjur-$project_name-dev $file_type package"
+for file_type in deb rpm
+do
+  echo "Building conjur-$project_name-dev $file_type package"
 
-fpm \
--s dir \
--t $file_type \
--n conjur-$project_name \
--v $version \
--C . \
---maintainer "CyberArk Software, Inc." \
---vendor "CyberArk Software, Inc." \
---license "Proprietary" \
---url "https://www.cyberark.com" \
---config-files opt/conjur/etc \
---deb-no-default-config-files \
---$file_type-user conjur \
---$file_type-group conjur \
---description "Conjur $project_name service" \
-"$@"
+  fpm \
+  -s dir \
+  -t $file_type \
+  -n conjur-$project_name \
+  -v $version \
+  -C . \
+	--maintainer "CyberArk Software, Inc." \
+	--vendor "CyberArk Software, Inc." \
+	--license "Proprietary" \
+	--url "https://www.cyberark.com" \
+	--config-files opt/conjur/etc \
+	--deb-no-default-config-files \
+	--$file_type-user conjur \
+	--$file_type-group conjur \
+	--description "Conjur $project_name service" \
+	"$@"
+done
 
 ls -al *.{deb,rpm}

@@ -50,7 +50,7 @@ module DebugMixin
     if a.length == 2 && a[0].is_a?(Symbol)
       debug a.last
     else
-       a.each do |line|
+      a.each do |line|
         begin
           line = JSON.parse(line)
           line.keys.each do |k|
@@ -166,11 +166,11 @@ command "clean" do |c|
       if perform_deletion
         image = Docker::Image.create 'fromImage' => "alpine:3.3"
         options = {
-          'Cmd'   => [ "sh", "-c", "while true; do sleep 1; done" ],
-          'Image' => image.id,
-          'Binds' => [
-            [ dir, "/src" ].join(':'),
-          ]
+            'Cmd'   => [ "sh", "-c", "while true; do sleep 1; done" ],
+            'Image' => image.id,
+            'Binds' => [
+                [ dir, "/src" ].join(':'),
+            ]
         }
         options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
         container = Docker::Container.create options
@@ -234,9 +234,6 @@ command "package" do |c|
   c.desc "Set the current working directory"
   c.flag [ :d, "dir" ]
 
-  c.desc "Set the output file type of the fpm command (e.g rpm)"
-  c.flag [ :o, :output ]
-
   c.desc "Specify the deb version; by default, it's read from the VERSION file"
   c.flag [ :v, :version ]
 
@@ -282,11 +279,11 @@ command "package" do |c|
         FileUtils.mkdir_p(File.dirname(destination_path))
         FileUtils.cp(original_file, destination_path)
       end
-      
+
       # rename specified dockerfile to 'Dockerfile' during copy, incase name is different
       dockerfile_path = cmd_options[:dockerfile] || File.expand_path("debify/Dockerfile.fpm", pwd)
       temp_dockerfile = File.join(temp_dir, "Dockerfile")
-      
+
       # change image variable in specified Dockerfile
       dockerfile = File.read(dockerfile_path)
       replace_image = dockerfile.gsub("@@image@@", fpm_image.id)
@@ -297,15 +294,9 @@ command "package" do |c|
 
       DebugMixin.debug_write "Built fpm image '#{image.id}' for project #{project_name}\n"
 
-      container_cmd_options = [ project_name, version ]
-
-      # Set the output file type if present
-      output = cmd_options[:output]
-      container_cmd_options << output if output
-
       options = {
-        'Cmd'   => container_cmd_options + fpm_args,
-        'Image' => image.id
+          'Cmd'   => [ project_name, version ] + fpm_args,
+          'Image' => image.id
       }
       options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
 
@@ -318,18 +309,18 @@ command "package" do |c|
 
         # Copy deb packages
         copy_packages_from_container(
-          container,
-          "conjur-#{project_name}_#{version}_amd64.deb",
-          "conjur-#{project_name}-dev_#{version}_amd64.deb"
+            container,
+            "conjur-#{project_name}_#{version}_amd64.deb",
+            "conjur-#{project_name}-dev_#{version}_amd64.deb"
         )
 
         # Copy rpm packages
         # The rpm builder replaces dashes with underscores in the version
         rpm_version = version.tr('-', '_')
         copy_packages_from_container(
-          container,
-          "conjur-#{project_name}-#{rpm_version}-1.x86_64.rpm",
-          "conjur-#{project_name}-dev-#{rpm_version}-1.x86_64.rpm"
+            container,
+            "conjur-#{project_name}-#{rpm_version}-1.x86_64.rpm",
+            "conjur-#{project_name}-dev-#{rpm_version}-1.x86_64.rpm"
         )
       ensure
         container.delete(force: true)
@@ -385,11 +376,11 @@ def add_network_config(container_config, cmd_options)
     if has_links
       container_config['NetworkingConfig'] ||= {}
       container_config['NetworkingConfig'].deep_merge!(
-        'EndpointsConfig' => {
-          net_name => {
-            'Links' => cmd_options[:link].collect(&method(:shorten_source_id))
+          'EndpointsConfig' => {
+              net_name => {
+                  'Links' => cmd_options[:link].collect(&method(:shorten_source_id))
+              }
           }
-        }
       )
     end
   elsif has_links
@@ -519,18 +510,18 @@ RUN touch /etc/service/conjur/down
       FileUtils.mkdir_p vendor_dir
       FileUtils.mkdir_p dot_bundle_dir
       options = {
-        'Image' => appliance_image.id,
-        'Env' => [
-          "CONJUR_AUTHN_LOGIN=admin",
-          "CONJUR_ENV=appliance",
-          "CONJUR_AUTHN_API_KEY=SEcret12!!!!",
-          "CONJUR_ADMIN_PASSWORD=SEcret12!!!!",
-        ] + global_options[:env],
-        'HostConfig' => {
-          'Binds' => [
-            [ dir, "/src/#{project_name}" ].join(':')
-          ]
-        }
+          'Image' => appliance_image.id,
+          'Env' => [
+              "CONJUR_AUTHN_LOGIN=admin",
+              "CONJUR_ENV=appliance",
+              "CONJUR_AUTHN_API_KEY=SEcret12!!!!",
+              "CONJUR_ADMIN_PASSWORD=SEcret12!!!!",
+          ] + global_options[:env],
+          'HostConfig' => {
+              'Binds' => [
+                  [ dir, "/src/#{project_name}" ].join(':')
+              ]
+          }
       }
       host_config = options['HostConfig']
 
@@ -541,8 +532,8 @@ RUN touch /etc/service/conjur/down
 
       if global_options[:'local-bundle']
         host_config['Binds']
-          .push([ vendor_dir, "/src/#{project_name}/vendor" ].join(':'))
-          .push([ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':'))
+            .push([ vendor_dir, "/src/#{project_name}/vendor" ].join(':'))
+            .push([ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':'))
       end
 
       container = Docker::Container.create(options.tap {|o| DebugMixin.debug_write "creating container with options #{o.inspect}"})
@@ -649,16 +640,16 @@ command "sandbox" do |c|
       appliance_image_id = [ cmd_options[:image], image_tag ].join(":")
 
       appliance_image = if cmd_options[:pull]
-        begin
-          tries ||=2
-          Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
-        rescue
-          login_to_registry appliance_image_id
-          retry unless (tries -= 1).zero?
-        end
-      else
-        Docker::Image.get appliance_image_id
-      end
+                          begin
+                            tries ||=2
+                            Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
+                          rescue
+                            login_to_registry appliance_image_id
+                            retry unless (tries -= 1).zero?
+                          end
+                        else
+                          Docker::Image.get appliance_image_id
+                        end
 
       project_name = File.basename(Dir.getwd)
       vendor_dir = File.expand_path("tmp/debify/#{project_name}/vendor", ENV['HOME'])
@@ -667,27 +658,27 @@ command "sandbox" do |c|
       FileUtils.mkdir_p dot_bundle_dir
 
       options = {
-        'name' => "#{project_name}-sandbox",
-        'Image' => appliance_image.id,
-        'WorkingDir' => "/src/#{project_name}",
-        'Env' => [
-          "CONJUR_AUTHN_LOGIN=admin",
-          "CONJUR_ENV=appliance",
-          "CONJUR_AUTHN_API_KEY=SEcret12!!!!",
-          "CONJUR_ADMIN_PASSWORD=SEcret12!!!!",
-        ] + global_options[:env]
+          'name' => "#{project_name}-sandbox",
+          'Image' => appliance_image.id,
+          'WorkingDir' => "/src/#{project_name}",
+          'Env' => [
+              "CONJUR_AUTHN_LOGIN=admin",
+              "CONJUR_ENV=appliance",
+              "CONJUR_AUTHN_API_KEY=SEcret12!!!!",
+              "CONJUR_ADMIN_PASSWORD=SEcret12!!!!",
+          ] + global_options[:env]
       }
 
       options['HostConfig'] = host_config = {}
       host_config['Binds'] = [
-        [ File.expand_path(".ssh/id_rsa", ENV['HOME']), "/root/.ssh/id_rsa", 'ro' ].join(':'),
-        [ dir, "/src/#{project_name}" ].join(':'),
+          [ File.expand_path(".ssh/id_rsa", ENV['HOME']), "/root/.ssh/id_rsa", 'ro' ].join(':'),
+          [ dir, "/src/#{project_name}" ].join(':'),
       ] + Array(cmd_options[:bind])
 
       if global_options[:'local-bundle']
         host_config['Binds']
-          .push([ vendor_dir, "/src/#{project_name}/vendor" ].join(':'))
-          .push([ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':'))
+            .push([ vendor_dir, "/src/#{project_name}/vendor" ].join(':'))
+            .push([ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':'))
       end
 
       host_config['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
@@ -827,4 +818,3 @@ on_error do |exception|
   # return false to skip default error handling
   true
 end
-
