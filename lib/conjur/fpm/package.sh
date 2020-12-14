@@ -6,6 +6,8 @@ project_name=$1
 shift
 version=$1
 shift
+file_type=${1-deb}
+shift
 
 if [ -z "$project_name" ]; then
 	echo Project name argument is required
@@ -15,6 +17,10 @@ if [ -z "$version" ]; then
 	echo Version argument is required
 	exit 1
 fi
+
+echo Project Name is $project_name
+echo Version is $version
+echo file_type is $file_type
 
 # Build dev package first
 prefix=/src/opt/conjur/project
@@ -30,9 +36,7 @@ bundle_clean
 if [ `ls | wc -l` -eq 0 ]; then
   echo No dev dependencies, skipping dev package
 else
-  for file_type in deb rpm
-  do
-    echo "Building conjur-$project_name-dev $file_type package"
+  echo "Building conjur-$project_name-dev $file_type package"
 
     fpm \
     -s dir \
@@ -50,7 +54,6 @@ else
     --depends "conjur-$project_name = $version" \
     --prefix /opt/conjur/$project_name \
     --description "Conjur $project_name service - development files"
-  done
 fi
 
 mv /src/opt/conjur/project /src/opt/conjur/$project_name
@@ -67,26 +70,23 @@ mkdir -p opt/conjur/etc
 
 [ -d opt/conjur/"$project_name"/distrib ] && mv opt/conjur/"$project_name"/distrib /
 
-for file_type in deb rpm
-do
-  echo "Building conjur-$project_name-dev $file_type package"
+echo "Building conjur-$project_name-dev $file_type package"
 
-  fpm \
-  -s dir \
-  -t $file_type \
-  -n conjur-$project_name \
-  -v $version \
-  -C . \
-	--maintainer "CyberArk Software, Inc." \
-	--vendor "CyberArk Software, Inc." \
-	--license "Proprietary" \
-	--url "https://www.cyberark.com" \
-	--config-files opt/conjur/etc \
-	--deb-no-default-config-files \
-	--$file_type-user conjur \
-	--$file_type-group conjur \
-	--description "Conjur $project_name service" \
-	"$@"
-done
+fpm \
+-s dir \
+-t $file_type \
+-n conjur-$project_name \
+-v $version \
+-C . \
+--maintainer "CyberArk Software, Inc." \
+--vendor "CyberArk Software, Inc." \
+--license "Proprietary" \
+--url "https://www.cyberark.com" \
+--config-files opt/conjur/etc \
+--deb-no-default-config-files \
+--$file_type-user conjur \
+--$file_type-group conjur \
+--description "Conjur $project_name service" \
+"$@"
 
 ls -al *.{deb,rpm}
