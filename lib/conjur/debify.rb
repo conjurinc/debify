@@ -301,7 +301,7 @@ command "package" do |c|
 
       # Set the output file type if present
       output = cmd_options[:output]
-      container_cmd_options << output if output
+      container_cmd_options << "--file-type=#{output}" if output
 
       options = {
           'Cmd'   => container_cmd_options + fpm_args,
