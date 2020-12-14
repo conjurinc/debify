@@ -104,4 +104,5 @@ fpm \
 --description "Conjur $project_name service" \
 "$@"
 
-ls -al *.{deb,rpm}
+ls -l
+# ls -al *.{deb,rpm}
