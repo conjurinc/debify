@@ -22,6 +22,7 @@ do
 case $i in
     -ft=*|--file-type=*)
     file_type="${i#*=}"
+    shift
     ;;
 esac
 done
@@ -34,6 +35,7 @@ fi
 echo Project Name is $project_name
 echo Version is $version
 echo file_type is $file_type
+echo params at the end are $@
 
 # Build dev package first
 prefix=/src/opt/conjur/project
