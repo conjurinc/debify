@@ -1,13 +1,12 @@
 #!/bin/bash -ex
 
-source /debify_utils.sh
+source /vim z.sh
 
 project_name=$1
 shift
 version=$1
 shift
-file_type=${1-deb}
-shift
+
 
 if [ -z "$project_name" ]; then
 	echo Project name argument is required
@@ -16,6 +15,20 @@ fi
 if [ -z "$version" ]; then
 	echo Version argument is required
 	exit 1
+fi
+
+for i in "$@"
+do
+case $i in
+    -ft=*|--file-type=*)
+    file_type="${i#*=}"
+    ;;
+esac
+done
+
+if [ -z "$file_type" ]; then
+	echo No File Type Given using deb
+	file_type=deb
 fi
 
 echo Project Name is $project_name
