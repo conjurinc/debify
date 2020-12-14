@@ -105,4 +105,3 @@ fpm \
 "$@"
 
 ls -l
-# ls -al *.{deb,rpm}
