@@ -13,6 +13,8 @@ require 'active_support/core_ext'
 
 include GLI::App
 
+DEFAULT_FILE_TYPE = "deb"
+
 config_file '.debifyrc'
 
 desc 'Set an environment variable (e.g. TERM=xterm) when starting a container'
@@ -300,8 +302,9 @@ command "package" do |c|
       container_cmd_options = [ project_name, version ]
 
       # Set the output file type if present
-      output = cmd_options[:output]
-      container_cmd_options << "--file-type=#{output}" if output
+      file_type = cmd_options[:output]
+      file_type ||= DEFAULT_FILE_TYPE
+      container_cmd_options << "--file-type=#{file_type}"
 
       options = {
           'Cmd'   => container_cmd_options + fpm_args,
@@ -316,21 +319,23 @@ command "package" do |c|
         status = container.wait
         raise "Failed to package #{project_name}" unless status['StatusCode'] == 0
 
-        # Copy deb packages
-        copy_packages_from_container(
-            container,
-            "conjur-#{project_name}_#{version}_amd64.deb",
-            "conjur-#{project_name}-dev_#{version}_amd64.deb"
-        )
-
-        # Copy rpm packages
-        # The rpm builder replaces dashes with underscores in the version
-        rpm_version = version.tr('-', '_')
-        copy_packages_from_container(
-            container,
-            "conjur-#{project_name}-#{rpm_version}-1.x86_64.rpm",
-            "conjur-#{project_name}-dev-#{rpm_version}-1.x86_64.rpm"
-        )
+        if file_type == "deb"
+          # Copy deb packages
+          copy_packages_from_container(
+              container,
+              "conjur-#{project_name}_#{version}_amd64.deb",
+              "conjur-#{project_name}-dev_#{version}_amd64.deb"
+          )
+        elsif file_type =="rpm"
+          # Copy rpm packages
+          # The rpm builder replaces dashes with underscores in the version
+          rpm_version = version.tr('-', '_')
+          copy_packages_from_container(
+              container,
+              "conjur-#{project_name}-#{rpm_version}-1.x86_64.rpm",
+              "conjur-#{project_name}-dev-#{rpm_version}-1.x86_64.rpm"
+          )
+        end
       ensure
         container.delete(force: true)
       end
