@@ -1,6 +1,6 @@
 #!/bin/bash -ex
 
-source /vim z.sh
+source /debify_utils.sh
 
 project_name=$1
 shift
