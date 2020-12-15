@@ -15,8 +15,7 @@ creds=( $(ruby /debify/distrib/conjur_creds.rb) )
 # subcommands) will work fine.
 if [[ ${#creds[*]} > 0 ]]; then
   echo -n "${creds[1]}" | docker login registry.tld -u ${creds[0]} --password-stdin >/dev/null 2>&1
-  exec wrapdocker debify "$@"
-else
-  exec debify "$@"
 fi
+
+exec debify "$@"
 
