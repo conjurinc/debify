@@ -2,6 +2,10 @@
 Feature: Running a sandbox
   Background:
     Given I successfully run `docker pull registry.tld/conjur-appliance-cuke-master:4.9-stable`
+    # The extra containers will use the `alpine` image, so we need to pull it first on the
+    # host to use the authenticated DockerHub connection. This avoids hitting DockerHub
+    # rate limits.
+    And I successfully run `docker pull alpine`
 
   Scenario: sandbox for 'example' project be started
     Given I successfully start a sandbox for "example" with arguments "-t 4.9-stable --no-pull"

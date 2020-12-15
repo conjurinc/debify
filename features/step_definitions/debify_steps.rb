@@ -12,11 +12,10 @@ When /^I start a container named "(.*?)"(?: on network "(.*?)")*$/ do |name, net
     networks << network
   end
   
-  alpine = Docker::Image.create('fromImage' => 'alpine')
   options = {
     'name' => name,
     'Cmd' => [ "sh", "-c", "while true; do sleep 1; done" ],
-    'Image' => alpine.id
+    'Image' => 'alpine'
   }
   options['HostConfig'] = { 'NetworkMode' => net_name } if net_name
     
