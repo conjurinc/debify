@@ -15,18 +15,13 @@ RUN apt-get update -qq && \
     curl \
     lxc \
     iptables
-    
-# Install Docker from Docker Inc. repositories.
-RUN curl -sSL https://get.docker.com/ | sh
 
-# Install the magic wrapper.
-RUN curl -sSL -o /usr/local/bin/wrapdocker https://raw.githubusercontent.com/jpetazzo/dind/master/wrapdocker
-RUN chmod +x /usr/local/bin/wrapdocker
-
-# Define additional metadata for our image.
-VOLUME /var/lib/docker
-
-### End of DockerInDocker support
+# Install Docker client tools
+ENV DOCKERVERSION=20.10.0
+RUN curl -fsSLO https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKERVERSION}.tgz \
+  && tar xzvf docker-${DOCKERVERSION}.tgz --strip 1 \
+                 -C /usr/local/bin docker/docker \
+  && rm docker-${DOCKERVERSION}.tgz
 
 RUN mkdir -p /debify
 WORKDIR /debify
