@@ -13,8 +13,10 @@ bundle
 
 # bundle exec rake cucumber
 
-apt-get install -y strace
+apt-get install -yqq strace
 
-strace -f -o ./trace.out docker pull registry.tld/conjur-appliance:5.0-stable
+whoami
+
+sudo strace -f -o ./trace.out docker pull registry.tld/conjur-appliance:5.0-stable
 
 grep docker < ./trace.out 
