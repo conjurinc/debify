@@ -1,12 +1,5 @@
 FROM ruby:2.6-stretch
 
-### DockerInDocker support is take from
-### https://github.com/jpetazzo/dind/blob/master/Dockerfile . I
-### elected to base this image on ruby, then pull in the (slightly
-### outdated) support for DockerInDocker. Creation of the official
-### docker:dind image much more complicated and didn't lend itself to
-### also running ruby.
-
 RUN apt-get update -qq && \
     apt-get dist-upgrade -qqy && \
     apt-get install -qqy \
