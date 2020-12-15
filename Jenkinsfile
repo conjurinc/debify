@@ -49,14 +49,14 @@ pipeline {
       }
     }
 
-    stage('Run feature tests') {
+    /*stage('Run feature tests') {
       steps {
         sh './test.sh'
       }
       post { always {
         junit 'features/reports/*.xml'
       }}
-    }
+    }*/
 
     stage('Push Docker image') {
       steps {
