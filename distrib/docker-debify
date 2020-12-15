@@ -35,6 +35,7 @@ export CONJUR_SSL_CERTIFICATE="$(< $(conjur_config cert_file))"
 # command line, it doesn't get set in the container.
 tty=$(tty -s && echo "-t" || true)
 docker run -i $tty --rm \
+  --cap-add SYS_PTRACE \
   -e GLI_DEBUG -e DEBUG \
   -e CONJUR_APPLIANCE_URL -e CONJUR_SSL_CERTIFICATE \
   -e GIT_BRANCH -e BRANCH_NAME \
