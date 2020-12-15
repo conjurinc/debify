@@ -7,16 +7,16 @@ bundle
 # simple, and log in as a side effect.
 # /debify/distrib/entrypoint.sh detect-version
 
-# for target in spec cucumber; do
-#   bundle exec rake $target
-# done
+for target in spec cucumber; do
+  bundle exec rake $target
+done
 
 # bundle exec rake cucumber
 
-apt-get install -yqq strace
+# apt-get install -yqq strace
 
-whoami
+# whoami
 
-strace -f -o ./trace.out docker pull registry.tld/conjur-appliance:5.0-stable
+# strace -f -o ./trace.out docker pull registry.tld/conjur-appliance:5.0-stable
 
-grep docker < ./trace.out 
+# grep docker < ./trace.out 
