@@ -1,3 +1,4 @@
+@skip
 @announce-output
 Feature: Packaging
 
