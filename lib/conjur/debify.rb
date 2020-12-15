@@ -18,7 +18,7 @@ DEFAULT_FILE_TYPE = "deb"
 config_file '.debifyrc'
 
 desc 'Set an environment variable (e.g. TERM=xterm) when starting a container'
-flag [:env], :multiple=>true
+flag [:env], :multiple => true
 
 desc 'Mount local bundle to reuse gems from previous installation'
 default_value true
@@ -166,11 +166,11 @@ command "clean" do |c|
         File.directory?(file) || ignore_file?(file)
       }
       if perform_deletion
-        image = Docker::Image.create 'fromImage'=>"alpine:3.3"
+        image = Docker::Image.create 'fromImage' => "alpine:3.3"
         options = {
-          'Cmd'=>["sh", "-c", "while true; do sleep 1; done"],
-          'Image'=>image.id,
-          'Binds'=>[
+          'Cmd' => ["sh", "-c", "while true; do sleep 1; done"],
+          'Image' => image.id,
+          'Binds' => [
             [dir, "/src"].join(':'),
           ]
         }
@@ -306,8 +306,8 @@ command "package" do |c|
       container_cmd_options << "--file-type=#{file_type}"
 
       options = {
-        'Cmd'=>container_cmd_options + fpm_args,
-        'Image'=>image.id
+        'Cmd' => container_cmd_options + fpm_args,
+        'Image' => image.id
       }
       options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
 
@@ -357,7 +357,7 @@ end
 
 def network_options(cmd)
   cmd.desc "Specify link for test container"
-  cmd.flag [:l, :link], :multiple=>true
+  cmd.flag [:l, :link], :multiple => true
 
   cmd.desc 'Attach to the specified network'
   cmd.flag [:n, :net]
@@ -389,9 +389,9 @@ def add_network_config(container_config, cmd_options)
     if has_links
       container_config['NetworkingConfig'] ||= {}
       container_config['NetworkingConfig'].deep_merge!(
-        'EndpointsConfig'=>{
-          net_name=>{
-            'Links'=>cmd_options[:link].collect(&method(:shorten_source_id))
+        'EndpointsConfig' => {
+          net_name => {
+            'Links' => cmd_options[:link].collect(&method(:shorten_source_id))
           }
         }
       )
@@ -447,7 +447,7 @@ command "test" do |c|
   c.flag [:v, :version]
 
   c.desc "Specify volume for test container"
-  c.flag [:'volumes-from'], :multiple=>true
+  c.flag [:'volumes-from'], :multiple => true
 
   network_options(c)
 
@@ -473,7 +473,7 @@ command "test" do |c|
 
       begin
         tries ||= 2
-        Docker::Image.create 'fromImage'=>appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
+        Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
       rescue
         login_to_registry appliance_image_id
         retry unless (tries -= 1).zero?
@@ -500,7 +500,7 @@ RUN touch /etc/service/conjur/down
           tar_cmd = "tar -cvzh -C #{tmpdir} #{dockerfile_name} -C #{Dir.pwd} #{packages}"
           tar = open("| #{tar_cmd}")
           begin
-            Docker::Image.build_from_tar(tar, :dockerfile=>dockerfile_name, &DebugMixin::DOCKER)
+            Docker::Image.build_from_tar(tar, :dockerfile => dockerfile_name, &DebugMixin::DOCKER)
           ensure
             tar.close
           end
@@ -523,15 +523,15 @@ RUN touch /etc/service/conjur/down
       FileUtils.mkdir_p vendor_dir
       FileUtils.mkdir_p dot_bundle_dir
       options = {
-        'Image'=>appliance_image.id,
-        'Env'=>[
+        'Image' => appliance_image.id,
+        'Env' => [
           "CONJUR_AUTHN_LOGIN=admin",
           "CONJUR_ENV=appliance",
           "CONJUR_AUTHN_API_KEY=SEcret12!!!!",
           "CONJUR_ADMIN_PASSWORD=SEcret12!!!!",
         ] + global_options[:env],
-        'HostConfig'=>{
-          'Binds'=>[
+        'HostConfig' => {
+          'Binds' => [
             [dir, "/src/#{project_name}"].join(':')
           ]
         }
@@ -554,7 +554,7 @@ RUN touch /etc/service/conjur/down
       begin
         DebugMixin.debug_write "Testing #{project_name} in container #{container.id}\n"
 
-        spawn("docker logs -f #{container.id}", [:out, :err]=>$stderr).tap do |pid|
+        spawn("docker logs -f #{container.id}", [:out, :err] => $stderr).tap do |pid|
           Process.detach pid
         end
         container.start!
@@ -615,7 +615,7 @@ command "sandbox" do |c|
   c.flag [:t, "image-tag"]
 
   c.desc "Bind another source directory into the container. Use <src>:<dest>, where both are full paths."
-  c.flag [:"bind"], :multiple=>true
+  c.flag [:"bind"], :multiple => true
 
   c.desc "'docker pull' the Conjur container image"
   c.default_value false
@@ -624,10 +624,10 @@ command "sandbox" do |c|
   network_options(c)
 
   c.desc "Specify volume for container"
-  c.flag [:'volumes-from'], :multiple=>true
+  c.flag [:'volumes-from'], :multiple => true
 
   c.desc "Expose a port from the container to host. Use <host>:<container>."
-  c.flag [:p, :port], :multiple=>true
+  c.flag [:p, :port], :multiple => true
 
   c.desc 'Run dev-install in /src/<project-name>'
   c.default_value false
@@ -655,7 +655,7 @@ command "sandbox" do |c|
       appliance_image = if cmd_options[:pull]
                           begin
                             tries ||= 2
-                            Docker::Image.create 'fromImage'=>appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
+                            Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
                           rescue
                             login_to_registry appliance_image_id
                             retry unless (tries -= 1).zero?
@@ -671,10 +671,10 @@ command "sandbox" do |c|
       FileUtils.mkdir_p dot_bundle_dir
 
       options = {
-        'name'=>"#{project_name}-sandbox",
-        'Image'=>appliance_image.id,
-        'WorkingDir'=>"/src/#{project_name}",
-        'Env'=>[
+        'name' => "#{project_name}-sandbox",
+        'Image' => appliance_image.id,
+        'WorkingDir' => "/src/#{project_name}",
+        'Env' => [
           "CONJUR_AUTHN_LOGIN=admin",
           "CONJUR_ENV=appliance",
           "CONJUR_AUTHN_API_KEY=SEcret12!!!!",
@@ -703,14 +703,14 @@ command "sandbox" do |c|
         port_bindings = Hash.new({})
         cmd_options[:port].each do |mapping|
           hport, cport = mapping.split(':')
-          port_bindings["#{cport}/tcp"] = [{'HostPort'=>hport}]
+          port_bindings["#{cport}/tcp"] = [{'HostPort' => hport}]
         end
         host_config['PortBindings'] = port_bindings
       end
 
       if cmd_options[:kill]
         previous = Docker::Container.get(options['name']) rescue nil
-        previous.delete(:force=>true) if previous
+        previous.delete(:force => true) if previous
       end
 
       container = Docker::Container.create(options.tap {|o| DebugMixin.debug_write "creating container with options #{o.inspect}"})
