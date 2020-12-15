@@ -7,22 +7,8 @@ end
 # Add more step definitions here
 
 When /^I start a container named "(.*?)"(?: on network "(.*?)")*$/ do |name, net_name|
-  if net_name
-    network =  Docker::Network.create(net_name)
-    networks << network
-  end
-  
-  alpine = Docker::Image.create('fromImage' => 'alpine')
-  options = {
-    'name' => name,
-    'Cmd' => [ "sh", "-c", "while true; do sleep 1; done" ],
-    'Image' => alpine.id
-  }
-  options['HostConfig'] = { 'NetworkMode' => net_name } if net_name
-    
-  container = Docker::Container.create(options)
-  container.start!
-  containers << container
+  step %Q{I successfully run `docker run -d --name='#{name}' --network='#{net_name}' alpine sh -c 'while true; do sleep 1; done'`}
+  containers << Docker::Container.get(name)
 end
 
 When /^I successfully start a sandbox for "(.*?)" with arguments "(.*?)"$/ do |project, args|
