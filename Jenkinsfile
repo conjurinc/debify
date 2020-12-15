@@ -49,7 +49,6 @@ pipeline {
       }
     }
 
-
     stage('Run feature tests') {
       steps {
         sh './test.sh'
