@@ -149,7 +149,7 @@ command "clean" do |c|
     @ignore_list = Array(cmd_options[:ignore]) + ['.', '..', '.git']
 
     def ignore_file? f
-      @ignore_list.find {|ignore| f.index(ignore) == 0}
+      @ignore_list.find { |ignore| f.index(ignore) == 0 }
     end
 
     dir = cmd_options[:dir] || '.'
@@ -162,7 +162,7 @@ command "clean" do |c|
       end
       find_files.compact!
       delete_files = (find_files - git_files)
-      delete_files.delete_if {|file|
+      delete_files.delete_if { |file|
         File.directory?(file) || ignore_file?(file)
       }
       if perform_deletion
@@ -292,7 +292,7 @@ command "package" do |c|
       # change image variable in specified Dockerfile
       dockerfile = File.read(dockerfile_path)
       replace_image = dockerfile.gsub("@@image@@", fpm_image.id)
-      File.open(temp_dockerfile, "w") {|file| file.puts replace_image}
+      File.open(temp_dockerfile, "w") { |file| file.puts replace_image }
 
       # build image from project being debified dir
       image = Docker::Image.build_from_dir temp_dir, &DebugMixin::DOCKER
@@ -314,7 +314,7 @@ command "package" do |c|
       container = Docker::Container.create options
       begin
         DebugMixin.debug_write "Packaging #{project_name} in container #{container.id}\n"
-        container.tap(&:start!).streaming_logs(follow: true, stdout: true, stderr: true) {|stream, chunk| $stderr.puts "#{chunk}"}
+        container.tap(&:start!).streaming_logs(follow: true, stdout: true, stderr: true) { |stream, chunk| $stderr.puts "#{chunk}" }
         status = container.wait
         raise "Failed to package #{project_name}" unless status['StatusCode'] == 0
 
@@ -549,7 +549,7 @@ RUN touch /etc/service/conjur/down
           .push([dot_bundle_dir, "/src/#{project_name}/.bundle"].join(':'))
       end
 
-      container = Docker::Container.create(options.tap {|o| DebugMixin.debug_write "creating container with options #{o.inspect}"})
+      container = Docker::Container.create(options.tap { |o| DebugMixin.debug_write "creating container with options #{o.inspect}" })
 
       begin
         DebugMixin.debug_write "Testing #{project_name} in container #{container.id}\n"
@@ -713,7 +713,7 @@ command "sandbox" do |c|
         previous.delete(:force => true) if previous
       end
 
-      container = Docker::Container.create(options.tap {|o| DebugMixin.debug_write "creating container with options #{o.inspect}"})
+      container = Docker::Container.create(options.tap { |o| DebugMixin.debug_write "creating container with options #{o.inspect}" })
       $stdout.puts container.id
       container.start!
 
