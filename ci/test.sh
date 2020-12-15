@@ -15,6 +15,6 @@ bundle
 
 apt-get install -y strace
 
-strace -o ./trace.out docker pull registry.tld/conjur-appliance:5.0-stable
+strace -f -o ./trace.out docker pull registry.tld/conjur-appliance:5.0-stable
 
 grep docker < ./trace.out 
