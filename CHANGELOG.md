@@ -1,20 +1,15 @@
 ## [Unreleased]
 
 # 1.12.1
-### Added
-- `--output` flag indicates which package type you want to create deb\rpm\any fpm supported output.
-    Notice that the default is DEBIAN if you dont give the flag. 
-
-### Notice
-
-* Default is DEBIAN if you dont give the `--output` flag.
-* Now if you want to create both debian and rpm you need to call debify twice each time with different output.
-
+### Changed
+- Debify now receives the flag `--output` as input to indicate the file type that it should package (e.g `rpm`). If this 
+  flag is not given, the default value is `deb`.
+  <link to github issue>
 ### Fixed
 
 * Same Configuration to deb and rpm bug that happens in Conjur Evoke CICD. 
-
-  https://app.zenhub.com/workspaces/palmtree-5d99d900491c060001c85cba/issues/conjurinc/dap-package/43
+    [conjurinc/debify#56](https://github.com/conjurinc/debify/issues/56)
+  
 
   
 

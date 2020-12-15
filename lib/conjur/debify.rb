@@ -82,7 +82,7 @@ def detect_version
     base_version = File.read("VERSION").strip
     commits_since = `git log #{base_commit}..HEAD --pretty='%h'`.split("\n").size
     hash = `git rev-parse --short HEAD`.strip
-    [ [ base_version, commits_since ].join('.'), hash ].join("-")
+    [[base_version, commits_since].join('.'), hash].join("-")
   else
     `git describe --long --tags --abbrev=7 --match 'v*.*.*' | sed -e 's/^v//'`.strip.tap do |version|
       raise "No Git version (tag) for project" if version.empty?
@@ -127,15 +127,15 @@ DESC
 arg_name "project-name -- <fpm-arguments>"
 command "clean" do |c|
   c.desc "Set the current working directory"
-  c.flag [ :d, "dir" ]
+  c.flag [:d, "dir"]
 
   c.desc "Ignore (don't delete) a file or directory"
-  c.flag [ :i, :ignore ]
+  c.flag [:i, :ignore]
 
   c.desc "Force file deletion even if if this doesn't look like a Jenkins environment"
-  c.switch [ :force ]
+  c.switch [:force]
 
-  c.action do |global_options,cmd_options,args|
+  c.action do |global_options, cmd_options, args|
     def looks_like_jenkins?
       require 'etc'
       Etc.getlogin == 'jenkins' && ENV['BUILD_NUMBER']
@@ -146,10 +146,10 @@ command "clean" do |c|
     if !perform_deletion
       $stderr.puts "No --force, and this doesn't look like Jenkins. I won't actually delete anything"
     end
-    @ignore_list = Array(cmd_options[:ignore]) + [ '.', '..', '.git' ]
+    @ignore_list = Array(cmd_options[:ignore]) + ['.', '..', '.git']
 
     def ignore_file? f
-      @ignore_list.find{|ignore| f.index(ignore) == 0}
+      @ignore_list.find { |ignore| f.index(ignore) == 0 }
     end
 
     dir = cmd_options[:dir] || '.'
@@ -162,17 +162,17 @@ command "clean" do |c|
       end
       find_files.compact!
       delete_files = (find_files - git_files)
-      delete_files.delete_if{|file|
+      delete_files.delete_if { |file|
         File.directory?(file) || ignore_file?(file)
       }
       if perform_deletion
         image = Docker::Image.create 'fromImage' => "alpine:3.3"
         options = {
-            'Cmd'   => [ "sh", "-c", "while true; do sleep 1; done" ],
-            'Image' => image.id,
-            'Binds' => [
-                [ dir, "/src" ].join(':'),
-            ]
+          'Cmd' => ["sh", "-c", "while true; do sleep 1; done"],
+          'Image' => image.id,
+          'Binds' => [
+            [dir, "/src"].join(':'),
+          ]
         }
         options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
         container = Docker::Container.create options
@@ -182,7 +182,7 @@ command "clean" do |c|
             puts file
 
             file = "/src/#{file}"
-            cmd = [ "rm", "-f", file ]
+            cmd = ["rm", "-f", file]
 
             stdout, stderr, status = container.exec cmd, &DebugMixin::DOCKER
             $stderr.puts "Failed to delete #{file}" unless status == 0
@@ -234,21 +234,21 @@ DESC
 arg_name "project-name -- <fpm-arguments>"
 command "package" do |c|
   c.desc "Set the current working directory"
-  c.flag [ :d, "dir" ]
+  c.flag [:d, "dir"]
 
   c.desc "Set the output file type of the fpm command (e.g rpm)"
-  c.flag [ :o, :output ]
+  c.flag [:o, :output]
 
   c.desc "Specify the deb version; by default, it's read from the VERSION file"
-  c.flag [ :v, :version ]
+  c.flag [:v, :version]
 
   c.desc "Specify a custom Dockerfile.fpm"
-  c.flag [ :dockerfile]
+  c.flag [:dockerfile]
 
   c.desc "Specify files to add to the FPM image that are not included from the git repo"
-  c.flag [ :'additional-files' ]
+  c.flag [:'additional-files']
 
-  c.action do |global_options,cmd_options,args|
+  c.action do |global_options, cmd_options, args|
     raise "project-name is required" unless project_name = args.shift
 
     fpm_args = []
@@ -292,23 +292,22 @@ command "package" do |c|
       # change image variable in specified Dockerfile
       dockerfile = File.read(dockerfile_path)
       replace_image = dockerfile.gsub("@@image@@", fpm_image.id)
-      File.open(temp_dockerfile, "w") {|file| file.puts replace_image}
+      File.open(temp_dockerfile, "w") { |file| file.puts replace_image }
 
       # build image from project being debified dir
       image = Docker::Image.build_from_dir temp_dir, &DebugMixin::DOCKER
 
       DebugMixin.debug_write "Built fpm image '#{image.id}' for project #{project_name}\n"
 
-      container_cmd_options = [ project_name, version ]
+      container_cmd_options = [project_name, version]
 
       # Set the output file type if present
-      file_type = cmd_options[:output]
-      file_type ||= DEFAULT_FILE_TYPE
+      file_type = cmd_options[:output] || DEFAULT_FILE_TYPE
       container_cmd_options << "--file-type=#{file_type}"
 
       options = {
-          'Cmd'   => container_cmd_options + fpm_args,
-          'Image' => image.id
+        'Cmd' => container_cmd_options + fpm_args,
+        'Image' => image.id
       }
       options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
 
@@ -322,18 +321,18 @@ command "package" do |c|
         if file_type == "deb"
           # Copy deb packages
           copy_packages_from_container(
-              container,
-              "conjur-#{project_name}_#{version}_amd64.deb",
-              "conjur-#{project_name}-dev_#{version}_amd64.deb"
+            container,
+            "conjur-#{project_name}_#{version}_amd64.deb",
+            "conjur-#{project_name}-dev_#{version}_amd64.deb"
           )
-        elsif file_type =="rpm"
+        elsif file_type == "rpm"
           # Copy rpm packages
           # The rpm builder replaces dashes with underscores in the version
           rpm_version = version.tr('-', '_')
           copy_packages_from_container(
-              container,
-              "conjur-#{project_name}-#{rpm_version}-1.x86_64.rpm",
-              "conjur-#{project_name}-dev-#{rpm_version}-1.x86_64.rpm"
+            container,
+            "conjur-#{project_name}-#{rpm_version}-1.x86_64.rpm",
+            "conjur-#{project_name}-dev-#{rpm_version}-1.x86_64.rpm"
           )
         end
       ensure
@@ -358,10 +357,10 @@ end
 
 def network_options(cmd)
   cmd.desc "Specify link for test container"
-  cmd.flag [ :l, :link ], :multiple => true
+  cmd.flag [:l, :link], :multiple => true
 
   cmd.desc 'Attach to the specified network'
-  cmd.flag [ :n, :net ]
+  cmd.flag [:n, :net]
 end
 
 def short_id(id)
@@ -377,7 +376,7 @@ end
 # instead. (Docker doesn't add full container ids as network aliases,
 # only short ids).
 def shorten_source_id(link)
-  src,dest = link.split(':')
+  src, dest = link.split(':')
   src && dest ? "#{short_id(src)}:#{dest}" : link
 end
 
@@ -390,11 +389,11 @@ def add_network_config(container_config, cmd_options)
     if has_links
       container_config['NetworkingConfig'] ||= {}
       container_config['NetworkingConfig'].deep_merge!(
-          'EndpointsConfig' => {
-              net_name => {
-                  'Links' => cmd_options[:link].collect(&method(:shorten_source_id))
-              }
+        'EndpointsConfig' => {
+          net_name => {
+            'Links' => cmd_options[:link].collect(&method(:shorten_source_id))
           }
+        }
       )
     end
   elsif has_links
@@ -427,32 +426,32 @@ DESC
 arg_name "project-name test-script"
 command "test" do |c|
   c.desc "Set the current working directory"
-  c.flag [ :d, :dir ]
+  c.flag [:d, :dir]
 
   c.desc "Keep the Conjur appliance container after the command finishes"
   c.default_value false
-  c.switch [ :k, :keep ]
+  c.switch [:k, :keep]
 
   c.desc "Image name"
   c.default_value "registry.tld/conjur-appliance-cuke-master"
-  c.flag [ :i, :image ]
+  c.flag [:i, :image]
 
   c.desc "Image tag, e.g. 4.5-stable, 4.6-stable"
-  c.flag [ :t, "image-tag"]
+  c.flag [:t, "image-tag"]
 
   c.desc "'docker pull' the Conjur container image"
   c.default_value true
-  c.switch [ :pull ]
+  c.switch [:pull]
 
   c.desc "Specify the deb version; by default, it's read from the VERSION file"
-  c.flag [ :v, :version ]
+  c.flag [:v, :version]
 
   c.desc "Specify volume for test container"
-  c.flag [ :'volumes-from' ], :multiple => true
+  c.flag [:'volumes-from'], :multiple => true
 
   network_options(c)
 
-  c.action do |global_options,cmd_options,args|
+  c.action do |global_options, cmd_options, args|
     raise "project-name is required" unless project_name = args.shift
     raise "test-script is required" unless test_script = args.shift
     raise "Received extra command-line arguments" if args.shift
@@ -465,7 +464,7 @@ command "test" do |c|
 
     Dir.chdir dir do
       image_tag = cmd_options["image-tag"] or raise "image-tag is required"
-      appliance_image_id = [ cmd_options[:image], image_tag ].join(":")
+      appliance_image_id = [cmd_options[:image], image_tag].join(":")
       version = cmd_options[:version] || detect_version
       package_name = "conjur-#{project_name}_#{version}_amd64.deb"
       dev_package_name = "conjur-#{project_name}-dev_#{version}_amd64.deb"
@@ -473,7 +472,7 @@ command "test" do |c|
       raise "#{test_script} does not exist or is not a file" unless File.file?(test_script)
 
       begin
-        tries ||=2
+        tries ||= 2
         Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
       rescue
         login_to_registry appliance_image_id
@@ -512,7 +511,7 @@ RUN touch /etc/service/conjur/down
       packages << dev_package_name if File.exist? dev_package_name
 
       begin
-        tries ||=2
+        tries ||= 2
         appliance_image = build_test_image(appliance_image_id, project_name, packages)
       rescue
         login_to_registry appliance_image_id
@@ -524,18 +523,18 @@ RUN touch /etc/service/conjur/down
       FileUtils.mkdir_p vendor_dir
       FileUtils.mkdir_p dot_bundle_dir
       options = {
-          'Image' => appliance_image.id,
-          'Env' => [
-              "CONJUR_AUTHN_LOGIN=admin",
-              "CONJUR_ENV=appliance",
-              "CONJUR_AUTHN_API_KEY=SEcret12!!!!",
-              "CONJUR_ADMIN_PASSWORD=SEcret12!!!!",
-          ] + global_options[:env],
-          'HostConfig' => {
-              'Binds' => [
-                  [ dir, "/src/#{project_name}" ].join(':')
-              ]
-          }
+        'Image' => appliance_image.id,
+        'Env' => [
+          "CONJUR_AUTHN_LOGIN=admin",
+          "CONJUR_ENV=appliance",
+          "CONJUR_AUTHN_API_KEY=SEcret12!!!!",
+          "CONJUR_ADMIN_PASSWORD=SEcret12!!!!",
+        ] + global_options[:env],
+        'HostConfig' => {
+          'Binds' => [
+            [dir, "/src/#{project_name}"].join(':')
+          ]
+        }
       }
       host_config = options['HostConfig']
 
@@ -546,16 +545,16 @@ RUN touch /etc/service/conjur/down
 
       if global_options[:'local-bundle']
         host_config['Binds']
-            .push([ vendor_dir, "/src/#{project_name}/vendor" ].join(':'))
-            .push([ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':'))
+          .push([vendor_dir, "/src/#{project_name}/vendor"].join(':'))
+          .push([dot_bundle_dir, "/src/#{project_name}/.bundle"].join(':'))
       end
 
-      container = Docker::Container.create(options.tap {|o| DebugMixin.debug_write "creating container with options #{o.inspect}"})
+      container = Docker::Container.create(options.tap { |o| DebugMixin.debug_write "creating container with options #{o.inspect}" })
 
       begin
         DebugMixin.debug_write "Testing #{project_name} in container #{container.id}\n"
 
-        spawn("docker logs -f #{container.id}", [ :out, :err ] => $stderr).tap do |pid|
+        spawn("docker logs -f #{container.id}", [:out, :err] => $stderr).tap do |pid|
           Process.detach pid
         end
         container.start!
@@ -606,29 +605,29 @@ Once in the container, use "/opt/conjur/evoke/bin/dev-install" to install the de
 DESC
 command "sandbox" do |c|
   c.desc "Set the current working directory"
-  c.flag [ :d, :dir ]
+  c.flag [:d, :dir]
 
   c.desc "Image name"
   c.default_value "registry.tld/conjur-appliance-cuke-master"
-  c.flag [ :i, :image ]
+  c.flag [:i, :image]
 
   c.desc "Image tag, e.g. 4.5-stable, 4.6-stable"
-  c.flag [ :t, "image-tag"]
+  c.flag [:t, "image-tag"]
 
   c.desc "Bind another source directory into the container. Use <src>:<dest>, where both are full paths."
-  c.flag [ :"bind" ], :multiple => true
+  c.flag [:"bind"], :multiple => true
 
   c.desc "'docker pull' the Conjur container image"
   c.default_value false
-  c.switch [ :pull ]
+  c.switch [:pull]
 
   network_options(c)
 
   c.desc "Specify volume for container"
-  c.flag [ :'volumes-from' ], :multiple => true
+  c.flag [:'volumes-from'], :multiple => true
 
   c.desc "Expose a port from the container to host. Use <host>:<container>."
-  c.flag [ :p, :port ], :multiple => true
+  c.flag [:p, :port], :multiple => true
 
   c.desc 'Run dev-install in /src/<project-name>'
   c.default_value false
@@ -639,9 +638,9 @@ command "sandbox" do |c|
   c.switch [:kill]
 
   c.desc 'A command to run in the sandbox'
-  c.flag [ :c, :command ]
+  c.flag [:c, :command]
 
-  c.action do |global_options,cmd_options,args|
+  c.action do |global_options, cmd_options, args|
     raise "Received extra command-line arguments" if args.shift
 
     dir = cmd_options[:dir] || '.'
@@ -651,11 +650,11 @@ command "sandbox" do |c|
 
     Dir.chdir dir do
       image_tag = cmd_options["image-tag"] or raise "image-tag is required"
-      appliance_image_id = [ cmd_options[:image], image_tag ].join(":")
+      appliance_image_id = [cmd_options[:image], image_tag].join(":")
 
       appliance_image = if cmd_options[:pull]
                           begin
-                            tries ||=2
+                            tries ||= 2
                             Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
                           rescue
                             login_to_registry appliance_image_id
@@ -672,27 +671,27 @@ command "sandbox" do |c|
       FileUtils.mkdir_p dot_bundle_dir
 
       options = {
-          'name' => "#{project_name}-sandbox",
-          'Image' => appliance_image.id,
-          'WorkingDir' => "/src/#{project_name}",
-          'Env' => [
-              "CONJUR_AUTHN_LOGIN=admin",
-              "CONJUR_ENV=appliance",
-              "CONJUR_AUTHN_API_KEY=SEcret12!!!!",
-              "CONJUR_ADMIN_PASSWORD=SEcret12!!!!",
-          ] + global_options[:env]
+        'name' => "#{project_name}-sandbox",
+        'Image' => appliance_image.id,
+        'WorkingDir' => "/src/#{project_name}",
+        'Env' => [
+          "CONJUR_AUTHN_LOGIN=admin",
+          "CONJUR_ENV=appliance",
+          "CONJUR_AUTHN_API_KEY=SEcret12!!!!",
+          "CONJUR_ADMIN_PASSWORD=SEcret12!!!!",
+        ] + global_options[:env]
       }
 
       options['HostConfig'] = host_config = {}
       host_config['Binds'] = [
-          [ File.expand_path(".ssh/id_rsa", ENV['HOME']), "/root/.ssh/id_rsa", 'ro' ].join(':'),
-          [ dir, "/src/#{project_name}" ].join(':'),
+        [File.expand_path(".ssh/id_rsa", ENV['HOME']), "/root/.ssh/id_rsa", 'ro'].join(':'),
+        [dir, "/src/#{project_name}"].join(':'),
       ] + Array(cmd_options[:bind])
 
       if global_options[:'local-bundle']
         host_config['Binds']
-            .push([ vendor_dir, "/src/#{project_name}/vendor" ].join(':'))
-            .push([ dot_bundle_dir, "/src/#{project_name}/.bundle" ].join(':'))
+          .push([vendor_dir, "/src/#{project_name}/vendor"].join(':'))
+          .push([dot_bundle_dir, "/src/#{project_name}/.bundle"].join(':'))
       end
 
       host_config['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
@@ -704,7 +703,7 @@ command "sandbox" do |c|
         port_bindings = Hash.new({})
         cmd_options[:port].each do |mapping|
           hport, cport = mapping.split(':')
-          port_bindings["#{cport}/tcp"] = [{ 'HostPort' => hport }]
+          port_bindings["#{cport}/tcp"] = [{'HostPort' => hport}]
         end
         host_config['PortBindings'] = port_bindings
       end
@@ -714,7 +713,7 @@ command "sandbox" do |c|
         previous.delete(:force => true) if previous
       end
 
-      container = Docker::Container.create(options.tap {|o| DebugMixin.debug_write "creating container with options #{o.inspect}"})
+      container = Docker::Container.create(options.tap { |o| DebugMixin.debug_write "creating container with options #{o.inspect}" })
       $stdout.puts container.id
       container.start!
 
@@ -750,27 +749,27 @@ DESC
 arg_name "distribution project-name"
 command "publish" do |c|
   c.desc "Set the current working directory"
-  c.flag [ :d, :dir ]
+  c.flag [:d, :dir]
 
   c.desc "Specify the deb package version; by default, it's computed automatically"
-  c.flag [ :v, :version ]
+  c.flag [:v, :version]
 
   c.desc "Component to publish to, either 'stable' or the name of the git branch"
-  c.flag [ :c, :component ]
+  c.flag [:c, :component]
 
   c.desc "Artifactory URL to publish to"
   c.default_value "https://conjurinc.jfrog.io/conjurinc"
-  c.flag [ :u, :url]
+  c.flag [:u, :url]
 
   c.desc "Artifactory Debian repo to publish package to"
   c.default_value "debian-private"
-  c.flag [ :r, :repo]
+  c.flag [:r, :repo]
 
   c.desc "Artifactory RPM repo to publish package to"
   c.default_value "redhat-private"
   c.flag ['rpm-repo']
 
-  c.action do |global_options,cmd_options,args|
+  c.action do |global_options, cmd_options, args|
     require 'conjur/debify/action/publish'
     raise "distribution is required" unless distribution = args.shift
     raise "project-name is required" unless project_name = args.shift
@@ -783,8 +782,8 @@ end
 desc "Auto-detect and print the repository version"
 command "detect-version" do |c|
   c.desc "Set the current working directory"
-  c.flag [ :d, :dir ]
-  c.action do |global_options,cmd_options,args|
+  c.flag [:d, :dir]
+  c.action do |global_options, cmd_options, args|
     raise "Received extra command-line arguments" if args.shift
 
     dir = cmd_options[:dir] || '.'
@@ -801,7 +800,7 @@ end
 desc 'Show the given configuration'
 arg_name 'configuration'
 command 'config' do |c|
-  c.action do |_,_,args|
+  c.action do |_, _, args|
     raise 'no configuration provided' unless config = args.shift
     raise "Received extra command-line arguments" if args.shift
 
@@ -812,7 +811,7 @@ command 'config' do |c|
 end
 
 
-pre do |global,command,options,args|
+pre do |global, command, options, args|
   # Pre logic here
   # Return true to proceed; false to abort and not call the
   # chosen command
@@ -821,7 +820,7 @@ pre do |global,command,options,args|
   true
 end
 
-post do |global,command,options,args|
+post do |global, command, options, args|
   # Post logic here
   # Use skips_post before a command to skip this
   # block on that command only
