@@ -7,7 +7,15 @@ end
 # Add more step definitions here
 
 When /^I start a container named "(.*?)"(?: on network "(.*?)")*$/ do |name, net_name|
-  step %Q{I successfully run `docker run -d --name='#{name}' --network='#{net_name}' alpine sh -c 'while true; do sleep 1; done'`}
+  net_arg=''
+  if net_name
+    step %Q{I run `docker network create '#{net_name}'`}
+    networks << Docker::Network.get(net_name)
+
+    net_arg="--network='#{net_name}'"
+  end
+
+  step %Q{I successfully run `docker run -d --name='#{name}' #{net_arg} alpine sh -c 'while true; do sleep 1; done'`}
   containers << Docker::Container.get(name)
 end
 
