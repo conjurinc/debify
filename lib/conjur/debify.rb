@@ -653,16 +653,16 @@ command "sandbox" do |c|
       appliance_image_id = [cmd_options[:image], image_tag].join(":")
 
       appliance_image = if cmd_options[:pull]
-                          begin
-                            tries ||= 2
-                            Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
-                          rescue
-                            login_to_registry appliance_image_id
-                            retry unless (tries -= 1).zero?
-                          end
-                        else
-                          Docker::Image.get appliance_image_id
-                        end
+        begin
+          tries ||= 2
+          Docker::Image.create 'fromImage' => appliance_image_id, &DebugMixin::DOCKER if cmd_options[:pull]
+        rescue
+          login_to_registry appliance_image_id
+          retry unless (tries -= 1).zero?
+        end
+      else
+        Docker::Image.get appliance_image_id
+      end
 
       project_name = File.basename(Dir.getwd)
       vendor_dir = File.expand_path("tmp/debify/#{project_name}/vendor", ENV['HOME'])
