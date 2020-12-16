@@ -33,6 +33,7 @@ if cucumber?
   Cucumber::Rake::Task.new(:features) do |t|
     opts = "features --format junit -o #{CUKE_RESULTS} --format pretty -x"
     opts += " --tags #{ENV['TAGS']}" if ENV['TAGS']
+    opts += " --tags ~@skip"
     t.cucumber_opts = opts
     t.fork = false
   end
