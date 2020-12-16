@@ -6,6 +6,7 @@ Feature: Packaging
     # We use version 0.0.1-suffix to verify that RPM converts dashes to underscores
     # in the version as we expect
     Given I successfully run `env DEBUG=true GLI_DEBUG=true debify package -d ../../example -v 0.0.1-suffix example -- --post-install /distrib/postinstall.sh`
+      And I successfully run `env DEBUG=true GLI_DEBUG=true debify package -d ../../example -v 0.0.1-suffix example --output rpm -- --post-install /distrib/postinstall.sh`
 
   Scenario: 'example' project can be packaged successfully
     Then the stdout should contain "conjur-example_0.0.1-suffix_amd64.deb"
