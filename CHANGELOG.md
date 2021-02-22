@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+# 2.1.0
+
+- Updated Bundler version from `1.17.3` to `2.2.11` to address
+  [CVE-2019-3881](https://nvd.nist.gov/vuln/detail/CVE-2019-3881).
+
 # 2.0.0
 ### Changed
 - Debify now receives the flag `--output` as input to indicate the file type that it should package (e.g `rpm`). If this 
