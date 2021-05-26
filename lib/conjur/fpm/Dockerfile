@@ -8,7 +8,7 @@ RUN apt-get update -y && \
                        libffi-dev \
                        rpm
 
-RUN gem install --no-document bundler:1.17.3 \
+RUN gem install --no-document bundler:2.2.18 \
                               fpm
 
 ENV GEM_HOME /usr/local/bundle
