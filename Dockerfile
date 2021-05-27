@@ -25,8 +25,8 @@ ARG VERSION
 RUN gem install -N conjur-debify-${VERSION}.gem
 
 ARG CONJUR_APPLIANCE_URL
-ENV CONJUR_APPLIANCE_URL ${CONJUR_APPLIANCE_URL:-https://conjur-master-v2.itp.conjur.net/api}
+ENV CONJUR_APPLIANCE_URL ${CONJUR_APPLIANCE_URL:-https://conjurops.itp.conjur.net}
 ENV CONJUR_ACCOUNT ${CONJUR_ACCOUNT:-conjur}
-ENV CONJUR_VERSION ${CONJUR_VERSION:-4}
+ENV CONJUR_VERSION ${CONJUR_VERSION:-5}
 
 ENTRYPOINT ["/debify/distrib/entrypoint.sh"]
