@@ -1,15 +1,11 @@
 # Build from the same version of ubuntu as phusion/baseimage
-FROM ubuntu:18.04
+FROM registry.tld/cyberark/phusion-ruby-fips:0.11-c01b95c
 
 RUN apt-get update -y && \
     apt-get dist-upgrade -y && \
     apt-get install -y build-essential \
                        git \
                        libffi-dev \
-                       libpq5 \
-                       libpq-dev \
-                       ruby2.5 \
-                       ruby2.5-dev \
                        rpm
 
 RUN gem install --no-document bundler:1.17.3 \
