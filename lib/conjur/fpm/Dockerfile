@@ -1,6 +1,7 @@
 # Build from the same version of ubuntu as phusion/baseimage
 FROM registry.tld/cyberark/phusion-ruby-fips:0.11-c01b95c
 
+
 RUN apt-get update -y && \
     apt-get dist-upgrade -y && \
     apt-get install -y build-essential \
