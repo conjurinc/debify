@@ -1,5 +1,5 @@
 # Build from the same version of ubuntu as phusion/baseimage
-FROM cyberark/phusion-ruby-fips:0.11-latest
+FROM cyberark/phusion-ruby-fips:latest
 
 RUN apt-get update -y && \
     apt-get dist-upgrade -y && \
