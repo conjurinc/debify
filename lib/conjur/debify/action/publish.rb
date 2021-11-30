@@ -35,6 +35,7 @@ module Conjur::Debify
           art_user = ENV['ARTIFACTORY_USER']
           art_password = ENV['ARTIFACTORY_PASSWORD']
           unless art_user && art_password
+            DebugMixin.debug_write "Artifactory Creds do not exist in env, retrieving them using Conjur SDK\n"
             art_user, art_password = fetch_art_creds
           end
 
@@ -98,6 +99,9 @@ module Conjur::Debify
         deb_info: nil
       )
 
+        DebugMixin.debug_write "Publishing package '#{package_name}' to repo '#{art_repo}' in URL '#{art_url}'\n"
+        DebugMixin.debug_write "Debian info is '#{deb_info.inspect}'\n"
+
         cmd_args = [
           "jfrog", "rt", "upload",
           "--url", art_url,
@@ -115,6 +119,7 @@ module Conjur::Debify
             [ dir, "/src" ].join(':')
           ]
         }
+
         options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
 
         publish(options)
