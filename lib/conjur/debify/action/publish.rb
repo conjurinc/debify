@@ -32,8 +32,8 @@ module Conjur::Debify
           art_url = cmd_options[:url]
           deb_art_repo = cmd_options[:repo]
 
-          art_user = ENV['ARTIFACTORY_USER']
-          art_password = ENV['ARTIFACTORY_PASSWORD']
+          art_user = "ENV['ARTIFACTORY_USER']"
+          art_password = "ENV['ARTIFACTORY_PASSWORD']"
           unless art_user && art_password
             DebugMixin.debug_write "Artifactory Creds do not exist in env, retrieving them using Conjur SDK\n"
             art_user, art_password = fetch_art_creds
