@@ -26,7 +26,7 @@ module Conjur::Debify
         Dir.chdir dir do
           version = cmd_options[:version] || detect_version
 
-          publish_image = create_image
+          publish_image = pull_jfrog_image
           DebugMixin.debug_write "Built base publish image '#{publish_image.id}'\n"
 
           art_url = cmd_options[:url]
@@ -70,8 +70,14 @@ module Conjur::Debify
         end
       end
 
-      def create_image
-        Docker::Image.build_from_dir File.expand_path('../../publish', File.dirname(__FILE__)), tag: "debify-publish", &DebugMixin::DOCKER
+      def pull_jfrog_image
+        jfrog_cli_image = ENV['JFROG_CLI_IMAGE'] || 'releases-docker.jfrog.io/jfrog/jfrog-cli'
+        jfrog_cli_image_tag = ENV['JFROG_CLI_IMAGE_TAG'] || '1.52.0'
+        image_ref = "#{jfrog_cli_image}:#{jfrog_cli_image_tag}"
+        DebugMixin.debug_write "Pulling JFrog CLI Image: '#{image_ref}'\n"
+        image = Docker::Image.create('fromImage' => image_ref, &DebugMixin::DOCKER)
+        image.tag('repo' => 'debify-publish')
+        return image
       end
 
       def fetch_art_creds
