@@ -24,7 +24,7 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency "bundler", ">= 2.2.18"
   spec.add_development_dependency "fakefs", "~> 0"
-  spec.add_development_dependency "rake", "~> 12.3.3"
+  spec.add_development_dependency "rake", "~> 13.0"
   
   # Pin to cucumbe v2. cucumber v3 changes (breaks) the behavior of
   # unmatched capture groups with \(d+). In v3, the value of such a
