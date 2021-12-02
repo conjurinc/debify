@@ -85,7 +85,7 @@ mkdir -p opt/conjur/etc
 
 [ -d opt/conjur/"$project_name"/distrib ] && mv opt/conjur/"$project_name"/distrib /
 
-echo "Building conjur-$project_name-dev $file_type package"
+echo "Building conjur-$project_name $file_type package"
 
 fpm \
   -s dir \
