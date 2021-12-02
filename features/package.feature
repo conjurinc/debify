@@ -20,4 +20,4 @@ Feature: Packaging
     And the stdout from "find ../../example" should not contain "conjur-example-0.0.1_suffix-1.x86_64.rpm"
 
   Scenario: 'example' project can be published
-    When I successfully run `env DEBUG=true GLI_DEBUG=true debify publish -v 0.0.1-suffix -d ../../example 4.9 example`
+    When I successfully run `env DEBUG=true GLI_DEBUG=true debify publish -v 0.0.1-suffix -d ../../example 5.0 example`

@@ -2,6 +2,6 @@
 
 cid=$1
 
-docker exec $cid ping -c1 other_host
+docker exec $cid curl -s http://other_host > /dev/null
 
 echo Test succeeded
