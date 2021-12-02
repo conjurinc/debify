@@ -31,7 +31,7 @@ Gem::Specification.new do |spec|
   # group is 0 instead of nil, which breaks aruba's "I successfully
   # run...." steps.
   spec.add_development_dependency "cucumber", '~> 2'
-  spec.add_development_dependency "aruba", "~> 0.14"
+  spec.add_development_dependency "aruba", "~> 1.0"
   spec.add_development_dependency 'rspec', '~> 3'
   spec.add_development_dependency 'ci_reporter_rspec', '~> 1.0'
 end
