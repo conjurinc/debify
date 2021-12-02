@@ -37,8 +37,11 @@ echo params at the end are $@
 
 # Build dev package first
 prefix=/src/opt/conjur/project
-cp -al $prefix /dev-pkg
 cd $prefix
+bundle config set --local deployment 'true' && \
+bundle config set --local path 'vendor/bundle' && \
+bundle
+cp -al $prefix /dev-pkg
 bundle config set --local without 'development test'
 bundle clean
 cd /dev-pkg
