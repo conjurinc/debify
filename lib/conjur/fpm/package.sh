@@ -39,9 +39,8 @@ echo params at the end are $@
 prefix=/src/opt/conjur/project
 cp -al $prefix /dev-pkg
 cd $prefix
-bundle --without development test
+bundle config set --local without 'development test'
 bundle clean
-cp /usr/local/bundle/config .bundle/config # bundler for some reason stores config there...
 cd /dev-pkg
 remove_matching $prefix
 bundle_clean

@@ -8,14 +8,12 @@ RUN apt-get update -y && \
                        libffi-dev \
                        rpm
 
-RUN gem install --no-document bundler:1.17.3 \
-                              fpm
+RUN gem install --no-document fpm
 
 ENV GEM_HOME /usr/local/bundle
 ENV BUNDLE_PATH="$GEM_HOME" \
     BUNDLE_BIN="$GEM_HOME/bin" \
-    BUNDLE_SILENCE_ROOT_WARNING=1 \
-    BUNDLE_APP_CONFIG="$GEM_HOME"
+    BUNDLE_SILENCE_ROOT_WARNING=1
 ENV PATH $BUNDLE_BIN:$PATH
 RUN mkdir -p "$GEM_HOME" "$BUNDLE_BIN" && \
     chmod 777 "$GEM_HOME" "$BUNDLE_BIN"
