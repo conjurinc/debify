@@ -18,20 +18,20 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
   
   spec.add_dependency "gli"
-  spec.add_dependency "docker-api", "~> 1.33"
+  spec.add_dependency "docker-api", "~> 2.0"
   spec.add_dependency "conjur-cli" , "~> 6"
   spec.add_dependency "conjur-api", "~> 5"
 
-  spec.add_development_dependency "bundler", ">= 2.2.18"
+  spec.add_development_dependency "bundler", ">= 2.2.30"
   spec.add_development_dependency "fakefs", "~> 0"
-  spec.add_development_dependency "rake", "~> 12.3.3"
+  spec.add_development_dependency "rake", "~> 13.0"
   
   # Pin to cucumbe v2. cucumber v3 changes (breaks) the behavior of
   # unmatched capture groups with \(d+). In v3, the value of such a
   # group is 0 instead of nil, which breaks aruba's "I successfully
   # run...." steps.
   spec.add_development_dependency "cucumber", '~> 2'
-  spec.add_development_dependency "aruba", "~> 0.14"
+  spec.add_development_dependency "aruba", "~> 1.0"
   spec.add_development_dependency 'rspec', '~> 3'
   spec.add_development_dependency 'ci_reporter_rspec', '~> 1.0'
 end

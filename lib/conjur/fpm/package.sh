@@ -37,11 +37,13 @@ echo params at the end are $@
 
 # Build dev package first
 prefix=/src/opt/conjur/project
-cp -al $prefix /dev-pkg
 cd $prefix
-bundle --without development test
+bundle config set --local deployment 'true' && \
+bundle config set --local path 'vendor/bundle' && \
+bundle
+cp -al $prefix /dev-pkg
+bundle config set --local without 'development test'
 bundle clean
-cp /usr/local/bundle/config .bundle/config # bundler for some reason stores config there...
 cd /dev-pkg
 remove_matching $prefix
 bundle_clean
@@ -83,7 +85,7 @@ mkdir -p opt/conjur/etc
 
 [ -d opt/conjur/"$project_name"/distrib ] && mv opt/conjur/"$project_name"/distrib /
 
-echo "Building conjur-$project_name-dev $file_type package"
+echo "Building conjur-$project_name $file_type package"
 
 fpm \
   -s dir \

@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+# 2.1.0
+### Changed
+
+- Refine bundler related steps in `debify package` flow: only `package.sh` file configures
+  and invokes bundler. `Dockerfile.fpm` only copies files and adjusts folder structure.
+- Remove bundler 1.* support 
+
 # 2.0.0
 ### Changed
 - Debify now receives the flag `--output` as input to indicate the file type that it should package (e.g `rpm`). If this 

@@ -7,10 +7,6 @@ WORKDIR /src/opt/conjur/project
 COPY Gemfile ./
 COPY Gemfile.lock ./
 
-RUN bundle --deployment
-RUN mkdir -p .bundle
-RUN cp /usr/local/bundle/config .bundle/config
-
 COPY . .
 ADD debify.sh /
 

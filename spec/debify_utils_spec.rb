@@ -30,7 +30,7 @@ describe "remove_matching()", type: :aruba do
   end
 
   def remove_matching
-    run_simple "bash -c 'source #{DEBIFY_UTILS_PATH}; cd #{herepath}; remove_matching #{therepath}'"
+    run_command_and_stop "bash -c 'source #{DEBIFY_UTILS_PATH}; cd #{herepath}; remove_matching #{therepath}'"
   end
   
   def here files

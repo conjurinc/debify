@@ -272,7 +272,17 @@ command "package" do |c|
       additional_files = cmd_options[:'additional-files'].split(',').map(&:strip)
     end
 
-    fpm_image = Docker::Image.build_from_dir File.expand_path('fpm', File.dirname(__FILE__)), tag: "debify-fpm", &DebugMixin::DOCKER
+    begin
+      tries ||= 2
+      fpm_image = Docker::Image.build_from_dir File.expand_path('fpm', File.dirname(__FILE__)), tag: "debify-fpm", &DebugMixin::DOCKER
+    rescue
+      image_id = File.readlines(File.expand_path('fpm/Dockerfile', File.dirname(__FILE__)))
+                     .find { | line | line =~ /^FROM/ }
+                     .split(' ')
+                     .last
+      login_to_registry image_id
+      retry unless (tries -= 1).zero?
+    end
     DebugMixin.debug_write "Built base fpm image '#{fpm_image.id}'\n"
     dir = File.expand_path(dir)
 

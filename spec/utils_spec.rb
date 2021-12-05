@@ -6,7 +6,7 @@ describe 'Conjur::Debify::Utils.copy_from_container' do
   it "copies a file from the container to the current directory" do
     tar = File.read "#{__dir__}/data/test.tar"
     container = instance_double Docker::Container
-    allow(container).to receive(:copy).with "/tmp/test.tar" do |&b|
+    allow(container).to receive(:archive_out).with "/tmp/test.tar" do |&b|
       StringIO.new(tar).each(nil, 512) do |c|
         # docker api sends three arguments, so emulate that
         b[c, nil, nil]

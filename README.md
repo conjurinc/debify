@@ -289,7 +289,7 @@ Start a sandbox, see that it can resolve the hostname `mydb`:
 
 ```sh-session
 
-example $ debify sandbox -t 4.9-stable --net testnet
+example $ debify sandbox -t 5.0-stable --net testnet
 example $ docker exec -it example-sandbox /bin/bash
 root@7d4217655332:/src/example# getent hosts mydb
 172.19.0.2      mydb
