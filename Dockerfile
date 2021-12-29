@@ -23,7 +23,7 @@ RUN gem install bundler:2.2.30
 RUN gem build debify.gemspec
 
 ARG VERSION
-RUN gem install -N conjur-debify-${VERSION}.gem
+RUN gem install -N conjur-debify-*.gem
 
 ARG CONJUR_APPLIANCE_URL
 ENV CONJUR_APPLIANCE_URL ${CONJUR_APPLIANCE_URL:-https://conjurops.itp.conjur.net}
