@@ -19,7 +19,6 @@ pipeline {
   options {
     timestamps()
     buildDiscarder(logRotator(daysToKeepStr: '30'))
-    skipDefaultCheckout()
   }
 
   triggers {
@@ -46,15 +45,6 @@ pipeline {
     }
     stage('Prepare') {
       steps {
-        // One of our cukes tests to see if debify can correctly
-        // determine the version for the package being created, based
-        // on the tags in the repo. By default, the Git SCM plugin
-        // doesn't pull tags, causing the cuke to fail.
-        //
-        // I couldn't find any way to configure the plugin, so I used
-        // the Snippet Generator to create this:
-        checkout([$class: 'GitSCM', branches: [[name: env.BRANCH_NAME]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CloneOption', depth: 0, noTags: false, reference: '', shallow: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'conjur-jenkins', url: 'git@github.com:conjurinc/debify.git']]])
-
         // Initialize VERSION file
         updateVersion("CHANGELOG.md", "${BUILD_NUMBER}")
       }
