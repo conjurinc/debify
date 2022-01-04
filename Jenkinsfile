@@ -102,6 +102,7 @@ pipeline {
       steps {
         release {
           sh './publish-rubygem.sh'
+          sh 'cp debify-*.gem release-assets/.'
         }
       }
     }
