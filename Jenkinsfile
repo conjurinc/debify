@@ -102,7 +102,7 @@ pipeline {
       steps {
         release {
           sh './publish-rubygem.sh'
-          sh 'cp debify-*.gem release-assets/.'
+          sh "cp conjur-debify-*.gem release-assets/."
         }
       }
     }
