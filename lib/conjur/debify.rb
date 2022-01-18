@@ -91,7 +91,7 @@ def detect_version
 end
 
 def git_files
-  files = (`git ls-files -z`.split("\x0") + ['Gemfile.lock']).uniq
+  files = (`git ls-files -z`.split("\x0") + ['Gemfile.lock', 'VERSION']).uniq
   # Since submodule directories are listed, but are not files, we remove them.
   # Currently, `conjur-project-config` is the only submodule in Conjur, and it
   # can safely be removed because it's a developer-only tool.  If we add another
