@@ -3,7 +3,7 @@
 : ${BRANCH_NAME:=$(git symbolic-ref --short HEAD)}
 
 show_master_tags() {
-  IFS=. read MAJOR MINOR PATCH <VERSION
+  IFS=. read MAJOR MINOR PATCH <<< "$(<VERSION)"
   TAG="$MAJOR.$MINOR.$PATCH"
   echo "latest $TAG $MAJOR.$MINOR"
 }
