@@ -1,3 +1,13 @@
+## [3.0.0]
+### Changed
+
+- Upgrade ruby version to 3.0.
+- Bump `cucumber` gem to 7.1.
+- Bump `conjur-api` gem to 5.3.7.
+- Bump `conjur-cli` gem to 6.2.6.
+- Bump `aruba` gem to 2.0.
+- Bump `jfrog-cli` to :latest.
+
 ## [2.1.1]
 ### Changed
 

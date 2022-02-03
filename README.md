@@ -32,7 +32,7 @@ $ gem install conjur-debify
 Pull the Docker image:
 
 ```sh-session
-$ VERSION=1.7.0
+$ VERSION=3.0.0
 $ docker pull registry.tld/conjurinc/debify:$VERSION
 ```
 
@@ -58,7 +58,7 @@ SYNOPSIS
     debify [global options] command [command options] [arguments...]
 
 VERSION
-    1.7.0
+    3.0.0
 
 
 GLOBAL OPTIONS

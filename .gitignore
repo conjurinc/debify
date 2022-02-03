@@ -13,6 +13,7 @@ features/reports
 *.so
 *.o
 *.a
+VERSION
 results.html
 mkmf.log
 *.deb
