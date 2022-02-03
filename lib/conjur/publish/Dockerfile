@@ -1,4 +1,4 @@
-FROM releases-docker.jfrog.io/jfrog/jfrog-cli:1.52.0
+FROM releases-docker.jfrog.io/jfrog/jfrog-cli:latest
 
 ENV JFROG_CLI_OFFER_CONFIG=false
 
