@@ -31,18 +31,35 @@ if cucumber?
 
   desc 'Run features'
   Cucumber::Rake::Task.new(:features) do |t|
-    opts = "features --format junit -o #{CUKE_RESULTS} --format pretty -x"
-    opts += " --tags #{ENV['TAGS']}" if ENV['TAGS']
-    opts += " --tags ~@skip"
+    opts = [
+      "features",
+      "--format",
+      "junit",
+      "-o",
+      CUKE_RESULTS,
+      "--format",
+      "pretty",
+      "-x"]
+    opts += ["--tags", ENV['TAGS']] if ENV['TAGS']
+    opts += ["--tags", "not @skip"]
     t.cucumber_opts = opts
     t.fork = false
   end
 
   desc 'Run features tagged as work-in-progress (@wip)'
   Cucumber::Rake::Task.new('features:wip') do |t|
-    tag_opts = ' --tags ~@pending'
-    tag_opts = ' --tags @wip'
-    t.cucumber_opts = "features --format junit -o #{CUKE_RESULTS} --format pretty -x -s#{tag_opts}"
+    tag_opts = %w[--tags @wip]
+    opts = [
+      "features",
+      "--format",
+      "junit",
+      "-o",
+      CUKE_RESULTS,
+      "--format",
+      "pretty",
+      "-x",
+      "-s"]
+    t.cucumber_opts = opts + tag_opts
     t.fork = false
   end
 
