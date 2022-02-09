@@ -8,7 +8,7 @@ properties([
 
 if (params.MODE == "PROMOTE") {
   release.promote(params.VERSION_TO_PROMOTE) { sourceVersion, targetVersion, assetDirectory ->
-    sh './publish-rubygems.sh'
+    sh './publish-rubygem.sh'
   }
   return
 }
