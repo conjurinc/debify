@@ -540,6 +540,7 @@ RUN touch /etc/service/conjur/down
       FileUtils.mkdir_p dot_bundle_dir
       options = {
         'Image' => appliance_image.id,
+        'name' => project_name,
         'Env' => [
           "CONJUR_AUTHN_LOGIN=admin",
           "CONJUR_ENV=appliance",
