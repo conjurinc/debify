@@ -64,6 +64,7 @@ else
     --license "Proprietary" \
     --url "https://www.cyberark.com" \
     --deb-no-default-config-files \
+    --deb-dist "whatever" \
     --$file_type-user conjur \
     --$file_type-group conjur \
     --depends "conjur-$project_name = $version" \
@@ -99,6 +100,7 @@ fpm \
   --url "https://www.cyberark.com" \
   --config-files opt/conjur/etc \
   --deb-no-default-config-files \
+  --deb-dist "whatever" \
   --$file_type-user conjur \
   --$file_type-group conjur \
   --description "Conjur $project_name service" \
