@@ -1,3 +1,8 @@
+## [3.0.1]
+### Changed
+
+- Supply debian distribution to fpm
+
 ## [3.0.0]
 ### Changed
 
