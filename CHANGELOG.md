@@ -3,6 +3,10 @@
 
 - Supply debian distribution to fpm
 
+### Fixed
+
+- Fixed publish-rubygems.sh by using git safe directory
+
 ## [3.0.0]
 ### Changed
 
