@@ -15,5 +15,9 @@ if [[ ${#creds[*]} > 0 ]]; then
   echo -n "${creds[1]}" | docker login registry.tld -u ${creds[0]} --password-stdin >/dev/null 2>&1
 fi
 
+# Ensure the current working directory is considered safe by git in the debify
+# container.
+git config --global --add safe.directory "$PWD"
+
 exec debify "$@"
 

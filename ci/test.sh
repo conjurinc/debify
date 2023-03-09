@@ -1,6 +1,6 @@
 #!/bin/bash -ex
 
-git config --global --add safe.directory $PWD
+git config --global --add safe.directory "$PWD"
 
 bundle
 
