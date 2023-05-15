@@ -2,6 +2,7 @@
 ### Changed
 
 - Supply debian distribution to fpm
+- Bump `bundler` gem to 2.2.33.
 
 ### Fixed
 
