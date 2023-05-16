@@ -19,7 +19,7 @@ WORKDIR /debify
 
 COPY . ./
 
-RUN gem install bundler:2.2.30
+RUN gem install bundler:2.2.33
 RUN gem build debify.gemspec
 
 ARG VERSION
