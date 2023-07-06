@@ -1,33 +1,33 @@
-FROM ruby:3.0
+FROM ruby:3.2
 
 RUN apt-get update -qq && \
-    apt-get dist-upgrade -qqy && \
+    apt-get upgrade -qqy && \
     apt-get install -qqy \
     apt-transport-https \
     ca-certificates \
-    curl
-    
+    curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Install Docker client tools
-ENV DOCKERVERSION=20.10.0
+ENV DOCKERVERSION=24.0.2
 RUN curl -fsSLO https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKERVERSION}.tgz \
   && tar xzvf docker-${DOCKERVERSION}.tgz --strip 1 \
                  -C /usr/local/bin docker/docker \
   && rm docker-${DOCKERVERSION}.tgz
 
-RUN mkdir -p /debify
 WORKDIR /debify
 
 COPY . ./
 
-RUN gem install bundler:2.2.33
-RUN gem build debify.gemspec
+RUN gem install --no-document bundler:2.4.14 && \
+    gem build debify.gemspec && \
+    gem install --no-document -N conjur-debify-*.gem
 
 ARG VERSION
-RUN gem install -N conjur-debify-*.gem
-
 ARG CONJUR_APPLIANCE_URL
-ENV CONJUR_APPLIANCE_URL ${CONJUR_APPLIANCE_URL:-https://conjurops.itp.conjur.net}
-ENV CONJUR_ACCOUNT ${CONJUR_ACCOUNT:-conjur}
-ENV CONJUR_VERSION ${CONJUR_VERSION:-5}
+ENV CONJUR_APPLIANCE_URL=${CONJUR_APPLIANCE_URL:-https://conjurops.itp.conjur.net} \
+    CONJUR_ACCOUNT=${CONJUR_ACCOUNT:-conjur} \
+    CONJUR_VERSION=${CONJUR_VERSION:-5}
 
 ENTRYPOINT ["/debify/distrib/entrypoint.sh"]
