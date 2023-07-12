@@ -379,7 +379,7 @@ end
 def wait_for_conjur appliance_image, container
   container_command container, '/opt/conjur/evoke/bin/wait_for_conjur'
 rescue
-  $stderr.puts container.logs
+  $stderr.puts container.logs(stdout: true, stderr: true)
   raise
 end
 
