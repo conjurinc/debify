@@ -254,11 +254,11 @@ root@7d4217655332:/src/authz# bundle exec rake db:migrate
 
 ## Usage with docker-compose
 
-As of v1.10.0, both the `test` and `sandbox` subcommands support the `--net` switch. This allows you to specify a network to which the Conjur appliance container should be attached.
+As of v1.10.0, both the `test` and `sandbox` subcommands support the `--net` switch.
+This allows you to specify a network to which the Conjur appliance container should be attached.
 
-There are a variety of ways to make use of this feature. One
-possiblity is creating a network using `docker network create`, then
-attaching both the docker-compose services, as well as the Conjur
+There are a variety of ways to make use of this feature. One possibility is creating a network
+using `docker network create`, then attaching both the docker-compose services, as well, as the Conjur
 appliance container created by debify, to it.
 
 As a (somewhat contrived) example, create a new docker network:
