@@ -1,3 +1,10 @@
+## [3.0.2]
+### Changed
+- Allow Base Image to be configured on execution.
+- Updated dependencies.
+- Adapted code to reflect Docker API changes, specifying at least one stream is now required.
+  [conjurinc/debify#86](https://github.com/conjurinc/debify/issues/86)
+
 ## [3.0.1]
 ### Changed
 

@@ -93,7 +93,7 @@ Builds a Conjur Debian package from a Ruby gem.
 $ debify help package
 NAME
     package - Build a debian package for a project
-    
+
 SYNOPSIS
     debify [global options] package [command options] project_name -- <fpm-arguments>
 b
@@ -110,11 +110,16 @@ DESCRIPTION
     The distrib folder in the project source tree is intended to create scripts for package pre-install, post-install etc. The distrib folder is not
     included in the deb package, so its contents should be copied to the file system or packaged using fpm arguments.
 
-    All arguments to this command which follow the double-dash are propagated to the fpm command. 
+    All arguments to this command which follow the double-dash are propagated to the fpm command.
 
 COMMAND OPTIONS
-    -d, --dir=arg     - Set the current working directory (default: none)
-    -v, --version=arg - Specify the deb version; by default, it's read from the VERSION file (default: none)
+    --additional-files=arg - Specify files to add to the FPM image that are not included from the git repo (default: none)
+    -d, --dir=arg          - Set the current working directory (default: none)
+    --dockerfile=arg       - Specify a custom Dockerfile.fpm (default: none)
+    -i, --image=arg        - Image name (default: cyberark/phusion-ruby-fips)
+    -o, --output=arg       - Set the output file type of the fpm command (e.g rpm) (default: none)
+    -t, --image-tag=arg    - Image tag, e.g. 4.5-stable, 4.6-stable (default: latest)
+    -v, --version=arg      - Specify the deb version; by default, it's read from the VERSION file (default: none)
 ```
 
 ### Example usage
@@ -151,7 +156,7 @@ DESCRIPTION
 
     Finally, a test script from the project source tree is run, again with the container id as the program argument.
 
-    Then the Conjur container is deleted (use --keep to leave it running). 
+    Then the Conjur container is deleted (use --keep to leave it running).
 
 COMMAND OPTIONS
     -c, --configure-script=arg - Shell script to configure the appliance before testing (default: none)
@@ -215,17 +220,17 @@ NAME
     sandbox - Setup a development sandbox for a Conjur debian package in a Conjur appliance container
 
 SYNOPSIS
-    debify [global options] sandbox [command options] 
+    debify [global options] sandbox [command options]
 
 DESCRIPTION
-    First, a Conjur appliance container is created and started. By default, the container image is 
+    First, a Conjur appliance container is created and started. By default, the container image is
     registry.tld/conjur-appliance-cuke-master. An image tag MUST be supplied. This image
-    is configured with all the CONJUR_ environment variables setup for the local environment (appliance URL, 
+    is configured with all the CONJUR_ environment variables setup for the local environment (appliance URL,
     cert path, admin username and password, etc). The project source tree is
-    also mounted into the container, at /src/<project-name>, where <project-name> is taken from the name of the 
+    also mounted into the container, at /src/<project-name>, where <project-name> is taken from the name of the
     current working directory.
 
-    Once in the container, use "/opt/conjur/evoke/bin/dev-install" to install the development bundle of your project. 
+    Once in the container, use "/opt/conjur/evoke/bin/dev-install" to install the development bundle of your project.
 
 COMMAND OPTIONS
     --bind=arg          - Bind another source directory into the container. Use <src>:<dest>, where both are full paths. (default: none)
@@ -249,12 +254,12 @@ root@7d4217655332:/src/authz# bundle exec rake db:migrate
 
 ## Usage with docker-compose
 
-As of v1.10.0, both the `test` and `sandbox` subcommands support the `--net` switch. This allows you to specify a network to which the Conjur appliance container should be attached. 
+As of v1.10.0, both the `test` and `sandbox` subcommands support the `--net` switch.
+This allows you to specify a network to which the Conjur appliance container should be attached.
 
-There are a variety of ways to make use of this feature. One
-possiblity is creating a network using `docker network create`, then
-attaching both the docker-compose services, as well as the Conjur
-appliance container created by debify, to it. 
+There are a variety of ways to make use of this feature. One possibility is creating a network
+using `docker network create`, then attaching both the docker-compose services, as well, as the Conjur
+appliance container created by debify, to it.
 
 As a (somewhat contrived) example, create a new docker network:
 
@@ -298,6 +303,6 @@ root@7d4217655332:/src/example# getent hosts mydb
 
 ## Contributing
 
-For instructions on how to get started and 
+For instructions on how to get started and
 descriptions of our development workflows, please see our
 [contributing guide](CONTRIBUTING.md).

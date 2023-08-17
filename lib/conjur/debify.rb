@@ -78,7 +78,7 @@ subcommand_option_handling :normal
 arguments :strict
 
 def detect_version
-  if File.exists?("VERSION") && !(base_commit = `git log --pretty='%h' VERSION | head -n 1`.strip).empty?
+  if File.exist?("VERSION") && !(base_commit = `git log --pretty='%h' VERSION | head -n 1`.strip).empty?
     base_version = File.read("VERSION").strip
     commits_since = `git log #{base_commit}..HEAD --pretty='%h'`.split("\n").size
     hash = `git rev-parse --short HEAD`.strip
@@ -254,6 +254,14 @@ command "package" do |c|
   c.desc "Specify files to add to the FPM image that are not included from the git repo"
   c.flag [:'additional-files']
 
+  c.desc "Image name"
+  c.default_value "cyberark/phusion-ruby-fips"
+  c.flag [:i, :image]
+
+  c.desc "Image tag, e.g. 4.5-stable, 4.6-stable"
+  c.default_value "latest"
+  c.flag [:t, :'image-tag']
+
   c.action do |global_options, cmd_options, args|
     raise "project-name is required" unless project_name = args.shift
 
@@ -272,9 +280,13 @@ command "package" do |c|
       additional_files = cmd_options[:'additional-files'].split(',').map(&:strip)
     end
 
+    dockerfile = File.read(File.expand_path('fpm/Dockerfile.template', File.dirname(__FILE__)))
+    replace_image = dockerfile.gsub("@@image@@", cmd_options[:'image'] + ":" + cmd_options[:'image-tag'])
+    File.open(File.expand_path('fpm/Dockerfile', File.dirname(__FILE__)), "w") { |file| file.puts replace_image }
+
     begin
       tries ||= 2
-      fpm_image = Docker::Image.build_from_dir File.expand_path('fpm', File.dirname(__FILE__)), tag: "debify-fpm", &DebugMixin::DOCKER
+      fpm_image = Docker::Image.build_from_dir File.expand_path('fpm', File.dirname(__FILE__)), architecture: "x86_64", tag: "debify-fpm", &DebugMixin::DOCKER
     rescue
       image_id = File.readlines(File.expand_path('fpm/Dockerfile', File.dirname(__FILE__)))
                      .find { | line | line =~ /^FROM/ }
@@ -367,7 +379,7 @@ end
 def wait_for_conjur appliance_image, container
   container_command container, '/opt/conjur/evoke/bin/wait_for_conjur'
 rescue
-  $stderr.puts container.logs
+  $stderr.puts container.logs(stdout: true, stderr: true)
   raise
 end
 
@@ -848,4 +860,3 @@ on_error do |exception|
   # return false to skip default error handling
   true
 end
-
