@@ -1,3 +1,5 @@
+## [3.0.3]
+
 ## [3.0.2]
 ### Changed
 - Allow Base Image to be configured on execution.
