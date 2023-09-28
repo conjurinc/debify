@@ -110,9 +110,10 @@ DESCRIPTION
     The distrib folder in the project source tree is intended to create scripts for package pre-install, post-install etc. The distrib folder is not
     included in the deb package, so its contents should be copied to the file system or packaged using fpm arguments.
 
-    All arguments to this command which follow the double-dash are propagated to the fpm command.
+    All arguments to this command which follow the double-dash are propagated to the fpm command. 
 
 COMMAND OPTIONS
+    -a, --architecture=arg - Set the architecture of the package; can be set to arm64 or amd64 (default: amd64)
     --additional-files=arg - Specify files to add to the FPM image that are not included from the git repo (default: none)
     -d, --dir=arg          - Set the current working directory (default: none)
     --dockerfile=arg       - Specify a custom Dockerfile.fpm (default: none)
