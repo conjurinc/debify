@@ -14,6 +14,8 @@ require 'active_support/core_ext'
 include GLI::App
 
 DEFAULT_FILE_TYPE = "deb"
+ARM64_ARCHITECTURE_NAME = "aarch64"
+AMD64_ARCHITECTURE_NAME = "amd64"
 
 config_file '.debifyrc'
 
@@ -262,6 +264,10 @@ command "package" do |c|
   c.default_value "latest"
   c.flag [:t, :'image-tag']
 
+  c.desc "Set the architecture of the package; can be set to arm64 or amd64"
+  c.default_value AMD64_ARCHITECTURE_NAME
+  c.flag [:a, :architecture]
+
   c.action do |global_options, cmd_options, args|
     raise "project-name is required" unless project_name = args.shift
 
@@ -333,11 +339,20 @@ command "package" do |c|
       file_type = cmd_options[:output] || DEFAULT_FILE_TYPE
       container_cmd_options << "--file-type=#{file_type}"
 
+      # Set the architecture of the package
+      architecture = cmd_options[:architecture] || AMD64_ARCHITECTURE_NAME
+      if architecture != AMD64_ARCHITECTURE_NAME && architecture != ARM64_ARCHITECTURE_NAME
+        raise "Unsupported architecture type: #{architecture}, choose one of the following: #{AMD64_ARCHITECTURE_NAME}, #{ARM64_ARCHITECTURE_NAME}"
+      end
+      container_cmd_options << "--architecture=#{architecture}"
+
       options = {
         'Cmd' => container_cmd_options + fpm_args,
         'Image' => image.id
       }
       options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
+
+      file_path, dev_file_path = determine_file_path(file_type, architecture, project_name, version)
 
       container = Docker::Container.create options
       begin
@@ -346,28 +361,43 @@ command "package" do |c|
         status = container.wait
         raise "Failed to package #{project_name}" unless status['StatusCode'] == 0
 
-        if file_type == "deb"
-          # Copy deb packages
-          copy_packages_from_container(
-            container,
-            "conjur-#{project_name}_#{version}_amd64.deb",
-            "conjur-#{project_name}-dev_#{version}_amd64.deb"
-          )
-        elsif file_type == "rpm"
-          # Copy rpm packages
-          # The rpm builder replaces dashes with underscores in the version
-          rpm_version = version.tr('-', '_')
-          copy_packages_from_container(
-            container,
-            "conjur-#{project_name}-#{rpm_version}-1.x86_64.rpm",
-            "conjur-#{project_name}-dev-#{rpm_version}-1.x86_64.rpm"
-          )
-        end
+        copy_packages_from_container(
+          container,
+          file_path,
+          dev_file_path
+        )
       ensure
         container.delete(force: true)
       end
     end
   end
+end
+
+def determine_file_path(file_type, architecture, project_name, version)
+  if file_type == "deb"
+    if architecture == ARM64_ARCHITECTURE_NAME
+      architecture = "arm64"
+    end
+
+    file_path = "conjur-#{project_name}_#{version}_#{architecture}.#{file_type}"
+    dev_file_path = "conjur-#{project_name}-dev_#{version}_#{architecture}.#{file_type}"
+
+  elsif file_type == "rpm"
+    if architecture == AMD64_ARCHITECTURE_NAME
+      architecture = "x86_64"
+    end
+
+    # The rpm builder replaces dashes with underscores in the version
+    version = version.tr('-', '_')
+
+    file_path = "conjur-#{project_name}-#{version}-1.#{architecture}.#{file_type}"
+    dev_file_path = "conjur-#{project_name}-dev-#{version}-1.#{architecture}.#{file_type}"
+
+  else
+    raise "Unrecognized file type: #{file_type}, must be one of the following: deb, rpm"
+  end
+
+  [file_path, dev_file_path]
 end
 
 def container_command container, *args
