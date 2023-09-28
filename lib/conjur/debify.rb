@@ -33,24 +33,24 @@ Docker.options[:read_timeout] = 300
 module DebugMixin
   DEBUG = ENV['DEBUG'].nil? ? true : ENV['DEBUG'].downcase == 'true'
 
-  def debug *a
+  def debug(* a)
     DebugMixin.debug *a
   end
 
-  def self.debug *a
+  def self.debug(* a)
     $stderr.puts *a if DEBUG
   end
 
-  def debug_write *a
+  def debug_write(* a)
     DebugMixin.debug_write *a
   end
 
-  def self.debug_write *a
+  def self.debug_write(* a)
     $stderr.write *a if DEBUG
   end
 
   # you can give this to various docker methods to print output if debug is on
-  def self.docker_debug *a
+  def self.docker_debug(* a)
     if a.length == 2 && a[0].is_a?(Symbol)
       debug a.last
     else
@@ -93,7 +93,7 @@ def detect_version
 end
 
 def git_files
-  files = (`git ls-files -z`.split("\x0") + ['Gemfile.lock', 'VERSION']).uniq
+  files = (`git ls-files -z`.split("\x0") + %w['Gemfile.lock', 'VERSION']).uniq
   # Since submodule directories are listed, but are not files, we remove them.
   # Currently, `conjur-project-config` is the only submodule in Conjur, and it
   # can safely be removed because it's a developer-only tool.  If we add another
@@ -143,7 +143,7 @@ command "clean" do |c|
   c.desc "Force file deletion even if if this doesn't look like a Jenkins environment"
   c.switch [:force]
 
-  c.action do |global_options, cmd_options, args|
+  c.action do |_, cmd_options, _|
     def looks_like_jenkins?
       require 'etc'
       Etc.getlogin == 'jenkins' && ENV['BUILD_NUMBER']
@@ -151,12 +151,12 @@ command "clean" do |c|
 
     require 'set'
     perform_deletion = cmd_options[:force] || looks_like_jenkins?
-    if !perform_deletion
+    unless perform_deletion
       $stderr.puts "No --force, and this doesn't look like Jenkins. I won't actually delete anything"
     end
-    @ignore_list = Array(cmd_options[:ignore]) + ['.', '..', '.git']
+    @ignore_list = Array(cmd_options[:ignore]) + %w['.', '..', '.git']
 
-    def ignore_file? f
+    def ignore_file?(f)
       @ignore_list.find { |ignore| f.index(ignore) == 0 }
     end
 
@@ -192,7 +192,7 @@ command "clean" do |c|
             file = "/src/#{file}"
             cmd = ["rm", "-f", file]
 
-            stdout, stderr, status = container.exec cmd, &DebugMixin::DOCKER
+            _, _, status = container.exec cmd, &DebugMixin::DOCKER
             $stderr.puts "Failed to delete #{file}" unless status == 0
           end
         ensure
@@ -268,8 +268,8 @@ command "package" do |c|
   c.default_value AMD64_ARCHITECTURE_NAME
   c.flag [:a, :architecture]
 
-  c.action do |global_options, cmd_options, args|
-    raise "project-name is required" unless project_name = args.shift
+  c.action do |_, cmd_options, args|
+    raise "project-name is required" unless (project_name = args.shift)
 
     fpm_args = []
     if (delimeter = args.shift) == '--'
@@ -357,7 +357,7 @@ command "package" do |c|
       container = Docker::Container.create options
       begin
         DebugMixin.debug_write "Packaging #{project_name} in container #{container.id}\n"
-        container.tap(&:start!).streaming_logs(follow: true, stdout: true, stderr: true) { |stream, chunk| $stderr.puts "#{chunk}" }
+        container.tap(&:start!).streaming_logs(follow: true, stdout: true, stderr: true) { |_, chunk| $stderr.puts "#{chunk}" }
         status = container.wait
         raise "Failed to package #{project_name}" unless status['StatusCode'] == 0
 
@@ -400,13 +400,13 @@ def determine_file_path(file_type, architecture, project_name, version)
   [file_path, dev_file_path]
 end
 
-def container_command container, *args
-  stdout, stderr, exitcode = container.exec args, &DebugMixin::DOCKER
+def container_command(container, *args)
+  stdout, _, exitcode = container.exec args, &DebugMixin::DOCKER
   exit_now! "Command failed : #{args.join(' ')}", exitcode unless exitcode == 0
   stdout
 end
 
-def wait_for_conjur appliance_image, container
+def wait_for_conjur(container)
   container_command container, '/opt/conjur/evoke/bin/wait_for_conjur'
 rescue
   $stderr.puts container.logs(stdout: true, stderr: true)
@@ -510,8 +510,8 @@ command "test" do |c|
   network_options(c)
 
   c.action do |global_options, cmd_options, args|
-    raise "project-name is required" unless project_name = args.shift
-    raise "test-script is required" unless test_script = args.shift
+    raise "project-name is required" unless (project_name = args.shift)
+    raise "test-script is required" unless (test_script = args.shift)
     raise "Received extra command-line arguments" if args.shift
 
     dir = cmd_options[:dir] || '.'
@@ -583,7 +583,7 @@ RUN touch /etc/service/conjur/down
       options = {
         'Image' => appliance_image.id,
         'name' => project_name,
-        'Env' => [
+        'Env' => %w[
           "CONJUR_AUTHN_LOGIN=admin",
           "CONJUR_ENV=appliance",
           "CONJUR_AUTHN_API_KEY=SEcret12!!!!",
@@ -620,9 +620,9 @@ RUN touch /etc/service/conjur/down
 
         # Wait for pg/main so that migrations can run
         30.times do
-          stdout, stderr, exitcode = container.exec %w(sv status pg/main), &DebugMixin::DOCKER
+          stdout, _, exitcode = container.exec %w(sv status pg/main), &DebugMixin::DOCKER
           status = stdout.join
-          break if exitcode == 0 && status =~ /^run\:/
+          break if exitcode == 0 && status =~ /^run/
           sleep 1
         end
 
@@ -637,7 +637,7 @@ RUN touch /etc/service/conjur/down
 
         container_command container, "rm", "/etc/service/conjur/down"
         container_command container, "sv", "start", "conjur"
-        wait_for_conjur appliance_image, container
+        wait_for_conjur container
 
         system "./#{test_script} #{container.id}"
         exit_now! "#{test_script} failed with exit code #{$?.exitstatus}", $?.exitstatus unless $?.exitstatus == 0
@@ -733,7 +733,7 @@ command "sandbox" do |c|
         'name' => "#{project_name}-sandbox",
         'Image' => appliance_image.id,
         'WorkingDir' => "/src/#{project_name}",
-        'Env' => [
+        'Env' => %w[
           "CONJUR_AUTHN_LOGIN=admin",
           "CONJUR_ENV=appliance",
           "CONJUR_AUTHN_API_KEY=SEcret12!!!!",
@@ -776,7 +776,7 @@ command "sandbox" do |c|
       $stdout.puts container.id
       container.start!
 
-      wait_for_conjur appliance_image, container
+      wait_for_conjur container
 
       if cmd_options[:'dev-install']
         container_command(container, "/opt/conjur/evoke/bin/dev-install", project_name)
@@ -828,10 +828,10 @@ command "publish" do |c|
   c.default_value "redhat-private"
   c.flag ['rpm-repo']
 
-  c.action do |global_options, cmd_options, args|
+  c.action do |_, cmd_options, args|
     require 'conjur/debify/action/publish'
-    raise "distribution is required" unless distribution = args.shift
-    raise "project-name is required" unless project_name = args.shift
+    raise "distribution is required" unless (distribution = args.shift)
+    raise "project-name is required" unless (project_name = args.shift)
     raise "Received extra command-line arguments" if args.shift
 
     Conjur::Debify::Action::Publish.new(distribution, project_name, cmd_options).run
@@ -842,7 +842,7 @@ desc "Auto-detect and print the repository version"
 command "detect-version" do |c|
   c.desc "Set the current working directory"
   c.flag [:d, :dir]
-  c.action do |global_options, cmd_options, args|
+  c.action do |_, cmd_options, args|
     raise "Received extra command-line arguments" if args.shift
 
     dir = cmd_options[:dir] || '.'
@@ -860,33 +860,11 @@ desc 'Show the given configuration'
 arg_name 'configuration'
 command 'config' do |c|
   c.action do |_, _, args|
-    raise 'no configuration provided' unless config = args.shift
+    raise 'no configuration provided' unless (config = args.shift)
     raise "Received extra command-line arguments" if args.shift
 
     File.open(File.join('distrib', config)).each do |line|
       puts line.gsub(/@@DEBIFY_VERSION@@/, Conjur::Debify::VERSION)
     end
   end
-end
-
-
-pre do |global, command, options, args|
-  # Pre logic here
-  # Return true to proceed; false to abort and not call the
-  # chosen command
-  # Use skips_pre before a command to skip this block
-  # on that command only
-  true
-end
-
-post do |global, command, options, args|
-  # Post logic here
-  # Use skips_post before a command to skip this
-  # block on that command only
-end
-
-on_error do |exception|
-  # Error logic here
-  # return false to skip default error handling
-  true
 end
