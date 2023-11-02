@@ -1,4 +1,6 @@
 ## [3.0.3]
+### Added
+- Allow user to specify architecture of packages (arm64 or amd64)
 
 ## [3.0.2]
 ### Changed
