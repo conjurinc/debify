@@ -38,7 +38,14 @@ Feature: Packaging
     Then the stdout from "find ../../example" should not contain "conjur-example_0.0.1-suffix_arm64.deb"
     And the stdout from "find ../../example" should not contain "conjur-example-0.0.1_suffix-1.aarch64.rpm"
 
-  Scenario: 'example' project can be published
+  Scenario: 'example' project can be published with amd64 architecture
     Given I successfully run `env DEBUG=true GLI_DEBUG=true debify package -d ../../example -v 0.0.1-suffix example -- --post-install /distrib/postinstall.sh`
     And I successfully run `env DEBUG=true GLI_DEBUG=true debify package -d ../../example --output rpm  -v 0.0.1-suffix example  -- --post-install /distrib/postinstall.sh`
+    When I successfully run `env DEBUG=true GLI_DEBUG=true debify publish -v 0.0.1-suffix -d ../../example 5.0 example`
+
+#  Scenario: 'example' project can be published with amd64 and arm64 architectures
+    Given I successfully run `env DEBUG=true GLI_DEBUG=true debify package -d ../../example -v 0.0.1-suffix example -- --post-install /distrib/postinstall.sh`
+    And I successfully run `env DEBUG=true GLI_DEBUG=true debify package -d ../../example --architecture="aarch64" -v 0.0.1-suffix example -- --post-install /distrib/postinstall.sh`
+    And I successfully run `env DEBUG=true GLI_DEBUG=true debify package -d ../../example --output rpm  -v 0.0.1-suffix example  -- --post-install /distrib/postinstall.sh`
+    And I successfully run `env DEBUG=true GLI_DEBUG=true debify package -d ../../example --output rpm --architecture="aarch64"  -v 0.0.1-suffix example  -- --post-install /distrib/postinstall.sh`
     When I successfully run `env DEBUG=true GLI_DEBUG=true debify publish -v 0.0.1-suffix -d ../../example 5.0 example`
