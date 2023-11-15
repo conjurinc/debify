@@ -117,7 +117,7 @@ COMMAND OPTIONS
     --additional-files=arg - Specify files to add to the FPM image that are not included from the git repo (default: none)
     -d, --dir=arg          - Set the current working directory (default: none)
     --dockerfile=arg       - Specify a custom Dockerfile.fpm (default: none)
-    -i, --image=arg        - Image name (default: cyberark/phusion-ruby-fips)
+    -i, --image=arg        - Image name (default: cyberark/ubuntu-ruby-builder)
     -o, --output=arg       - Set the output file type of the fpm command (e.g rpm) (default: none)
     -t, --image-tag=arg    - Image tag, e.g. 4.5-stable, 4.6-stable (default: latest)
     -v, --version=arg      - Specify the deb version; by default, it's read from the VERSION file (default: none)
