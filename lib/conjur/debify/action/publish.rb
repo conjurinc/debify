@@ -38,7 +38,7 @@ module Conjur::Debify
             art_user, art_password = fetch_art_creds
           end
 
-          # Publish deb package
+          # Publish AMD64 deb package
           component = cmd_options[:component] || detect_component
           deb_info = "#{distribution}/#{component}/amd64"
           package_name = "conjur-#{project_name}_#{version}_amd64.deb"
@@ -53,10 +53,26 @@ module Conjur::Debify
             deb_info: deb_info
           )
 
+          # (Optional) Publish ARM64 deb package
+          unless Dir.glob('*_arm64.deb').empty?
+            deb_info = "#{distribution}/#{component}/arm64"
+            package_name = "conjur-#{project_name}_#{version}_arm64.deb"
+            publish_package(
+              publish_image: publish_image,
+              art_url: art_url,
+              art_user: art_user,
+              art_password: art_password,
+              art_repo: deb_art_repo,
+              package_name: package_name,
+              dir: dir,
+              deb_info: deb_info
+            )
+          end
+
           # Publish RPM package
           # The rpm builder replaces dashes with underscores in the version
           rpm_version = version.tr('-', '_')
-          package_name = "conjur-#{project_name}-#{rpm_version}-1.x86_64.rpm"
+          package_name = "conjur-#{project_name}-#{rpm_version}-1.*.rpm"
           rpm_art_repo = cmd_options['rpm-repo']
           publish_package(
             publish_image: publish_image,

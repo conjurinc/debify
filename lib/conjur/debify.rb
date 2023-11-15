@@ -257,7 +257,7 @@ command "package" do |c|
   c.flag [:'additional-files']
 
   c.desc "Image name"
-  c.default_value "cyberark/phusion-ruby-fips"
+  c.default_value "cyberark/ubuntu-ruby-builder"
   c.flag [:i, :image]
 
   c.desc "Image tag, e.g. 4.5-stable, 4.6-stable"
