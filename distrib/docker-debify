@@ -43,6 +43,7 @@ docker run -i $tty --rm \
   ${envfile_arg} \
   -v "$PWD:$PWD" -w "$PWD" \
   -v /var/run/docker.sock:/var/run/docker.sock \
+  -v "${HOME}:${HOME}" \
   -v "${netrc}:${HOME}/.netrc:ro" \
   ${rc_arg} \
   ${DEBIFY_ENTRYPOINT+--entrypoint $DEBIFY_ENTRYPOINT} \
