@@ -43,6 +43,7 @@ echo Project Name is $project_name
 echo Version is $version
 echo file_type is $file_type
 echo architecture is $architecture
+echo uname: $(uname -a)
 echo params at the end are $@
 
 # Build dev package first

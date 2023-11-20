@@ -16,6 +16,11 @@ RUN curl -fsSLO https://download.docker.com/linux/static/stable/x86_64/docker-${
                  -C /usr/local/bin docker/docker \
   && rm docker-${DOCKERVERSION}.tgz
 
+# Install Docker buildx
+RUN curl -fsSLO https://download.docker.com/linux/debian/dists/bookworm/pool/stable/amd64/docker-buildx-plugin_0.11.2-1~debian.12~bookworm_amd64.deb \
+    && dpkg -i docker-buildx-plugin*.deb \
+    && rm docker-buildx-plugin*.deb
+
 WORKDIR /debify
 
 COPY . ./

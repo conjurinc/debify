@@ -27,7 +27,7 @@ default_value true
 switch [:'local-bundle']
 
 
-Docker.options[:read_timeout] = 300
+Docker.options[:read_timeout] = 1800
 
 # This is used to turn on DEBUG notices.
 module DebugMixin
@@ -264,6 +264,10 @@ command "package" do |c|
   c.default_value "latest"
   c.flag [:t, :'image-tag']
 
+  c.desc "Platform"
+  c.default_value ""
+  c.flag [:platform]
+
   c.desc "Set the architecture of the package; can be set to arm64 or amd64"
   c.default_value AMD64_ARCHITECTURE_NAME
   c.flag [:a, :architecture]
@@ -288,11 +292,13 @@ command "package" do |c|
 
     dockerfile = File.read(File.expand_path('fpm/Dockerfile.template', File.dirname(__FILE__)))
     replace_image = dockerfile.gsub("@@image@@", cmd_options[:'image'] + ":" + cmd_options[:'image-tag'])
-    File.open(File.expand_path('fpm/Dockerfile', File.dirname(__FILE__)), "w") { |file| file.puts replace_image }
+    replace_platform = replace_image.gsub("@@platform@@", cmd_options[:'platform'])
+    File.open(File.expand_path('fpm/Dockerfile', File.dirname(__FILE__)), "w") { |file| file.puts replace_platform }
 
     begin
       tries ||= 2
-      fpm_image = Docker::Image.build_from_dir File.expand_path('fpm', File.dirname(__FILE__)), architecture: "x86_64", tag: "debify-fpm", &DebugMixin::DOCKER
+      filepath = File.expand_path('fpm/Dockerfile', File.dirname(__FILE__))
+      %x(docker build -f #{filepath} -t fpm-base #{File.dirname(filepath)})
     rescue
       image_id = File.readlines(File.expand_path('fpm/Dockerfile', File.dirname(__FILE__)))
                      .find { | line | line =~ /^FROM/ }
@@ -301,7 +307,7 @@ command "package" do |c|
       login_to_registry image_id
       retry unless (tries -= 1).zero?
     end
-    DebugMixin.debug_write "Built base fpm image '#{fpm_image.id}'\n"
+    DebugMixin.debug_write "Built base fpm image 'fpm-base'\n"
     dir = File.expand_path(dir)
 
     Dir.chdir dir do
@@ -325,7 +331,7 @@ command "package" do |c|
 
       # change image variable in specified Dockerfile
       dockerfile = File.read(dockerfile_path)
-      replace_image = dockerfile.gsub("@@image@@", fpm_image.id)
+      replace_image = dockerfile.gsub("@@image@@", 'fpm-base')
       File.open(temp_dockerfile, "w") { |file| file.puts replace_image }
 
       # build image from project being debified dir
