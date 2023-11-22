@@ -27,7 +27,7 @@ default_value true
 switch [:'local-bundle']
 
 
-Docker.options[:read_timeout] = 300
+Docker.options[:read_timeout] = 3000
 
 # This is used to turn on DEBUG notices.
 module DebugMixin
