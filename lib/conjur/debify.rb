@@ -93,7 +93,7 @@ def detect_version
 end
 
 def git_files
-  files = (`git ls-files -z`.split("\x0") + %w['Gemfile.lock', 'VERSION']).uniq
+  files = (`git ls-files -z`.split("\x0") + %w[Gemfile.lock VERSION]).uniq
   # Since submodule directories are listed, but are not files, we remove them.
   # Currently, `conjur-project-config` is the only submodule in Conjur, and it
   # can safely be removed because it's a developer-only tool.  If we add another
@@ -154,7 +154,7 @@ command "clean" do |c|
     unless perform_deletion
       $stderr.puts "No --force, and this doesn't look like Jenkins. I won't actually delete anything"
     end
-    @ignore_list = Array(cmd_options[:ignore]) + %w['.', '..', '.git']
+    @ignore_list = Array(cmd_options[:ignore]) + %w[. .. .git]
 
     def ignore_file?(f)
       @ignore_list.find { |ignore| f.index(ignore) == 0 }
@@ -584,10 +584,10 @@ RUN touch /etc/service/conjur/down
         'Image' => appliance_image.id,
         'name' => project_name,
         'Env' => %w[
-          "CONJUR_AUTHN_LOGIN=admin",
-          "CONJUR_ENV=appliance",
-          "CONJUR_AUTHN_API_KEY=SEcret12!!!!",
-          "CONJUR_ADMIN_PASSWORD=SEcret12!!!!",
+          CONJUR_AUTHN_LOGIN=admin
+          CONJUR_ENV=appliance
+          CONJUR_AUTHN_API_KEY=SEcret12!!!!
+          CONJUR_ADMIN_PASSWORD=SEcret12!!!!
         ] + global_options[:env],
         'HostConfig' => {
           'Binds' => [
@@ -734,10 +734,10 @@ command "sandbox" do |c|
         'Image' => appliance_image.id,
         'WorkingDir' => "/src/#{project_name}",
         'Env' => %w[
-          "CONJUR_AUTHN_LOGIN=admin",
-          "CONJUR_ENV=appliance",
-          "CONJUR_AUTHN_API_KEY=SEcret12!!!!",
-          "CONJUR_ADMIN_PASSWORD=SEcret12!!!!",
+          CONJUR_AUTHN_LOGIN=admin
+          CONJUR_ENV=appliance
+          CONJUR_AUTHN_API_KEY=SEcret12!!!!
+          CONJUR_ADMIN_PASSWORD=SEcret12!!!!
         ] + global_options[:env]
       }
 

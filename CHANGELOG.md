@@ -3,6 +3,10 @@
 - Allow user to specify architecture of packages (arm64 or amd64)
 - Upload artifacts for all packaged architectures to artifactory
 
+### Fixed
+- Fixed regressions introduced by incorrect linting fixes. Most significantly,
+  preventing the `VERSION` file from being included in release packages.
+
 ## [3.0.2]
 ### Changed
 - Allow Base Image to be configured on execution.
@@ -40,11 +44,11 @@
 
 - Refine bundler related steps in `debify package` flow: only `package.sh` file configures
   and invokes bundler. `Dockerfile.fpm` only copies files and adjusts folder structure.
-- Remove bundler 1.* support 
+- Remove bundler 1.* support
 
 # 2.0.0
 ### Changed
-- Debify now receives the flag `--output` as input to indicate the file type that it should package (e.g `rpm`). If this 
+- Debify now receives the flag `--output` as input to indicate the file type that it should package (e.g `rpm`). If this
   flag is not given, the default value is `deb`.
   [conjurinc/debify#56](https://github.com/conjurinc/debify/issues/56)
 
