@@ -1,6 +1,6 @@
 ## [3.0.3]
 ### Added
-- Allow user to specify architecture of packages (arm64 or amd64)
+- Build ARM64 image using platform parameter
 - Upload artifacts for all packaged architectures to artifactory
 
 ### Fixed

@@ -22,10 +22,6 @@ for i in "$@"; do
     file_type="${i#*=}"
     shift
     ;;
-  --architecture=*)
-    architecture="${i#*=}"
-    shift
-    ;;
   esac
 done
 
@@ -34,15 +30,9 @@ if [ -z "$file_type" ]; then
   file_type=deb
 fi
 
-if [ -z "$architecture" ]; then
-  echo "No architecture given. Using amd64"
-  file_type=amd64
-fi
-
 echo Project Name is $project_name
 echo Version is $version
 echo file_type is $file_type
-echo architecture is $architecture
 echo params at the end are $@
 
 # Build dev package first
@@ -66,7 +56,6 @@ else
   fpm \
     -s dir \
     -t $file_type \
-    -a $architecture \
     -n conjur-$project_name-dev \
     -v $version \
     -C . \
@@ -102,7 +91,6 @@ echo "Building conjur-$project_name $file_type package"
 fpm \
   -s dir \
   -t $file_type \
-  -a $architecture \
   -n conjur-$project_name \
   -v $version \
   -C . \

@@ -5,6 +5,7 @@ require 'gli'
 require 'json'
 require 'base64'
 require 'tmpdir'
+require 'rbconfig'
 
 require 'conjur/debify/utils'
 
@@ -14,8 +15,6 @@ require 'active_support/core_ext'
 include GLI::App
 
 DEFAULT_FILE_TYPE = "deb"
-ARM64_ARCHITECTURE_NAME = "aarch64"
-AMD64_ARCHITECTURE_NAME = "amd64"
 
 config_file '.debifyrc'
 
@@ -90,6 +89,24 @@ def detect_version
       raise "No Git version (tag) for project" if version.empty?
     end
   end
+end
+
+def detect_architecture
+  architecture = RbConfig::CONFIG['arch']
+  result_map = {}
+
+  case architecture
+  when /x86_64|amd64/
+    result_map['deb'] = 'amd64'
+    result_map['rpm'] = 'x86_64'
+  when /arm64|aarch64/
+    result_map['deb'] = 'arm64'
+    result_map['rpm'] = 'aarch64'
+  else
+    raise "Unsupported architecture type: #{architecture}"
+  end
+
+  result_map
 end
 
 def git_files
@@ -174,7 +191,7 @@ command "clean" do |c|
         File.directory?(file) || ignore_file?(file)
       }
       if perform_deletion
-        image = Docker::Image.create 'fromImage' => "alpine:3.3"
+        image = Docker::Image.create 'fromImage' => "alpine:3.19.0"
         options = {
           'Cmd' => ["sh", "-c", "while true; do sleep 1; done"],
           'Image' => image.id,
@@ -264,10 +281,6 @@ command "package" do |c|
   c.default_value "latest"
   c.flag [:t, :'image-tag']
 
-  c.desc "Set the architecture of the package; can be set to arm64 or amd64"
-  c.default_value AMD64_ARCHITECTURE_NAME
-  c.flag [:a, :architecture]
-
   c.action do |_, cmd_options, args|
     raise "project-name is required" unless (project_name = args.shift)
 
@@ -339,20 +352,13 @@ command "package" do |c|
       file_type = cmd_options[:output] || DEFAULT_FILE_TYPE
       container_cmd_options << "--file-type=#{file_type}"
 
-      # Set the architecture of the package
-      architecture = cmd_options[:architecture] || AMD64_ARCHITECTURE_NAME
-      if architecture != AMD64_ARCHITECTURE_NAME && architecture != ARM64_ARCHITECTURE_NAME
-        raise "Unsupported architecture type: #{architecture}, choose one of the following: #{AMD64_ARCHITECTURE_NAME}, #{ARM64_ARCHITECTURE_NAME}"
-      end
-      container_cmd_options << "--architecture=#{architecture}"
-
       options = {
         'Cmd' => container_cmd_options + fpm_args,
         'Image' => image.id
       }
       options['Privileged'] = true if Docker.version['Version'] >= '1.10.0'
 
-      file_path, dev_file_path = determine_file_path(file_type, architecture, project_name, version)
+      file_path, dev_file_path = determine_file_path(file_type, detect_architecture, project_name, version)
 
       container = Docker::Container.create options
       begin
@@ -373,26 +379,19 @@ command "package" do |c|
   end
 end
 
-def determine_file_path(file_type, architecture, project_name, version)
+def determine_file_path(file_type, architecture_map, project_name, version)
   if file_type == "deb"
-    if architecture == ARM64_ARCHITECTURE_NAME
-      architecture = "arm64"
-    end
-
+    architecture = architecture_map[file_type]
     file_path = "conjur-#{project_name}_#{version}_#{architecture}.#{file_type}"
     dev_file_path = "conjur-#{project_name}-dev_#{version}_#{architecture}.#{file_type}"
-
   elsif file_type == "rpm"
-    if architecture == AMD64_ARCHITECTURE_NAME
-      architecture = "x86_64"
-    end
+    architecture = architecture_map[file_type]
 
     # The rpm builder replaces dashes with underscores in the version
     version = version.tr('-', '_')
 
     file_path = "conjur-#{project_name}-#{version}-1.#{architecture}.#{file_type}"
     dev_file_path = "conjur-#{project_name}-dev-#{version}-1.#{architecture}.#{file_type}"
-
   else
     raise "Unrecognized file type: #{file_type}, must be one of the following: deb, rpm"
   end

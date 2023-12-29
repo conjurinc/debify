@@ -5,4 +5,10 @@ if [ ! -f "VERSION" ]; then
 fi
 
 VERSION=$(< VERSION)
-docker build --build-arg VERSION=$VERSION -t debify:$VERSION .
+
+ARCH="$1"
+if [ -z "$ARCH" ]; then
+  ARCH="amd64"
+fi
+
+docker build --platform "linux/$ARCH" --build-arg VERSION=$VERSION -t debify:$VERSION-$ARCH .

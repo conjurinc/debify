@@ -43,34 +43,67 @@ pipeline {
         }
       }
     }
+
     stage('Prepare') {
       steps {
         // Initialize VERSION file
         updateVersion("CHANGELOG.md", "${BUILD_NUMBER}")
+        // Allow ARM64 architecture build
+        sh 'sudo apt-get install qemu binfmt-support qemu-user-static'
+        sh 'docker run --rm --privileged multiarch/qemu-user-static --reset -p yes'
+        sh 'docker buildx ls'
       }
     }
-    stage('Build docker image') {
-      steps {
-        sh './build.sh'
+
+    stage('Build Docker image') {
+      parallel {
+        stage('Build AMD64 image') {
+          steps {
+            sh './build.sh amd64'
+          }
+        }
+
+        stage('Build ARM64 image') {
+          steps {
+            sh './build.sh arm64'
+          }
+        }
       }
     }
 
     stage('Scan Docker image') {
       parallel {
-        stage('Scan Docker image for fixable issues') {
+        stage('Scan Docker image for fixable issues (AMD64 based)') {
           steps{
             script {
               VERSION = sh(returnStdout: true, script: 'cat VERSION')
             }
-            scanAndReport("debify:${VERSION}", "HIGH", false)
+            scanAndReport("debify:${VERSION}-amd64", "HIGH", false)
           }
         }
-        stage('Scan Docker image for all issues') {
+        stage('Scan Docker image for all issues (AMD64 based)') {
           steps{
             script {
               VERSION = sh(returnStdout: true, script: 'cat VERSION')
             }
-            scanAndReport("debify:${VERSION}", "NONE", true)
+            scanAndReport("debify:${VERSION}-amd64", "NONE", true)
+          }
+        }
+
+        stage('Scan Docker image for fixable issues (ARM64 based)') {
+          steps{
+            script {
+              VERSION = sh(returnStdout: true, script: 'cat VERSION')
+            }
+            scanAndReport("debify:${VERSION}-arm64", "HIGH", false)
+          }
+        }
+        stage('Scan Docker image for all issues (ARM64 based)') {
+          steps{
+            script {
+              VERSION = sh(returnStdout: true, script: 'cat VERSION')
+            }
+            scanAndReport("debify:${VERSION}-arm64", "NONE", true)
           }
         }
       }
@@ -86,9 +119,24 @@ pipeline {
     }
 
     stage('Push Docker image') {
+      parallel {
+        stage('Push AMD64 image') {
+          steps {
+            sh './push-image.sh amd64'
+          }
+        }
+
+        stage('Push ARM64 image') {
+          steps {
+            sh './push-image.sh arm64'
+          }
+        }
+      }
+    }
+
+    stage('Push Docker manifest with multi-arch') {
       steps {
-        sh './tag-image.sh'
-        sh './push-image.sh'
+        sh './push-manifest.sh'
       }
     }
 
