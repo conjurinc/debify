@@ -36,6 +36,9 @@ export CONJUR_SSL_CERTIFICATE="$(< $(conjur_config cert_file))"
 tty=$(tty -s && echo "-t" || true)
 docker run -i $tty --rm \
   -e GLI_DEBUG -e DEBUG \
+  -e OKTA_CLIENT_SECRET -e ID_TOKEN_USER_PROPERTY \
+  -e OKTA_CLIENT_ID -e OKTA_PROVIDER_URI \
+  -e OKTA_USERNAME -e OKTA_PASSWORD \
   -e CONJUR_APPLIANCE_URL -e CONJUR_SSL_CERTIFICATE \
   -e GIT_BRANCH -e BRANCH_NAME \
   -e ARTIFACTORY_USER -e ARTIFACTORY_PASSWORD \
