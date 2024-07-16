@@ -10,7 +10,7 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Docker client tools
-ENV DOCKERVERSION=24.0.2
+ENV DOCKERVERSION=27.0.3
 RUN curl -fsSLO https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKERVERSION}.tgz \
   && tar xzvf docker-${DOCKERVERSION}.tgz --strip 1 \
                  -C /usr/local/bin docker/docker \
